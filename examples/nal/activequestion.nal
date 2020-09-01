@@ -23,7 +23,7 @@
 //Active question however does:
 <(<({cat} * #where) --> in> &/ <({SELF} * #where) --> ^say>) =/> G>.
 G! :|:
-10
+100
 //expected: ^go executed with args ({SELF} * bedroom)
 
 //ok, feedback of NARS going to the bedroom, the cat is there!
