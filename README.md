@@ -1,12 +1,14 @@
-# SWI-Prolog Pack that runs Narsese like OpenNARS
+# Narsese on Prolog (NP)
+
+This is a SWI-Prolog pack that runs Narsese like OpenNARS
 
 OpenNARS for Prolog is a completely new platform and not branched from the existing OpenNARS codebase. The Narsese in Prolog (NP) system takes the logic and conceptual ideas of OpenNARS, and will be doing event handling and procedural learning much like ANSNA.
  
-
-- LOGICMOO IRC channel #logicmoo on freenode.net.";
+- LOGICMOO IRC channel #logicmoo on [freenode.net](irc://irc.freenode.net:+6697/logicmoo).
 - LOGICMOO Telegram at [https://t.me/LogicMoo](https://t.me/LogicMoo)
 - NARS mailing list at https://groups.google.com/forum/?fromgroups#!forum/open-nars
-- NARS on IRC channel #nars on freenode.net.";
+- NARS on IRC channel #nars on freenode.net.
+
 
 
 # Installation
