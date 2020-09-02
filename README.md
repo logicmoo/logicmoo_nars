@@ -46,7 +46,7 @@ Be old school - Please ask to be added to TeamSPoon and Contribute directly !
 
 Still, we wont stop you from doing it the Fork+PullRequest method
 
-[BSD 2-Clause License](LICENSE.md)
+[BSD 2-Clause License](LICENSE)
 
 Copyright (c) 2020, 
 TeamSPoon and Douglas Miles <logicmoo@gmail.com> 
