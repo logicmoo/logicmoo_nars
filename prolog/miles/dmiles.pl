@@ -118,8 +118,9 @@ prompt(X):- format('~N~w ',[X]).
 :- expects_dialect(sicstus).
 
 do_full_kb(KB):- 
+ clear_kb, init_kb(KB),
  nth_clause(do_full_kb1,Index,_),
- do_full_kb(KB,Index).
+ do_full_kb(_,Index).
 
 do_full_kb(KB,Index):-
  nth_clause(do_full_kb1,Index,Ref),
@@ -128,19 +129,23 @@ do_full_kb(KB,Index):-
 
 do_full_kb(KB,Index,Goal):-
  once((
-  format('===================',[]),
-  format('======= Nth: ~w  ~p  =======',[Index,Goal]),
-  format('===================',[]),
-   clear_kb, init_kb(KB),
+ ignore((nonvar(KB),clear_kb, init_kb(KB))),
+  format('~N===================',[]),
+  format('~N======= Nth: ~w  ~p  =======',[Index,Goal]),
+  format('~N===================~n',[]),
    show_kb, 
-   do_full_call_each(Goal),
-   show_kb)).
+   catch(do_full_call_each(Goal),E,(dumpST,throw(E))),
+   show_kb,   
+   format('~N==== DONE: ~w ========~n',[Index]))).
 
 do_full_call_each((G1,G2)):- !, do_full_call_each(G1),do_full_call_each(G2).
-do_full_call_each((G1->G2)):- \+ \+ (( call(G1),!,term_variables(G2,Vars),call(G2),!, wdmsg(do_full_call_each((G1+G2=Vars))))), !.
+do_full_call_each((G1->G2)):- \+ \+ (( my_do_call(G1),!,term_variables(G2,Vars),my_do_call(G2),!, wdmsg(do_full_call_each((G1+G2=Vars))))), !.
 do_full_call_each(G1):-
-  \+ \+ (( term_variables(G1,Vars), call(G1),!, wdmsg(do_full_call_each((G1:Vars))))), !.
- 
+  \+ \+ (( term_variables(G1,Vars), my_do_call(G1),!, wdmsg(do_full_call_each((G1:Vars))))), !.
+
+% my_do_call(G):- !, must_or_rtrace(G).
+my_do_call(G):- notrace(ignore(catch(G,_,true))).
+
 do_full_kb1:- 
  argument_types,
  show_kb,
