@@ -41,3 +41,41 @@ PORTABILITY : Possible problems include
 INTERNAL DOCUMENTATION : Predicates are commented with a statement of
 their purpose. However, you will probably also need to read the report
 by Brazdil quoted in MULTAGNT.PL.
+                      SIMULATION OF MULTI-AGENT TUTORING
+            Written by Thomas Hoppe, Technical University of Berlin
+                                      and
+                     Yiu Cheung Ho, King's College London.
+
+
+This entry consists of the following files:
+
+    MULTAGNT.PRE - this one.
+
+    CALLS_1.PL   - two driver files.
+    CALLS_2.PL
+
+    LEARNER1.PL  - the (possibly faulty) knowledge of two learners.
+    LEARNER2.PL    learner1 is correct; learner2 is not.
+
+    MULTAGNT.PL  - the main simulation.
+
+    TEACHER.PL   - the teacher's knowledge of various topics.
+
+
+I think the main predicate is in MULTAGNT.PL, "diagnose". However, I
+haven't had time to examine the software.          
+
+
+CHECKED ON EDINBURGH-COMPATIBLE (POPLOG) PROLOG : no.
+
+
+PORTABILITY : Possible problems include
+- the declaration of dynamic clauses in some Prolog dialects;
+- different operator declarations; and
+- you may need to write some trivial predicates (e.g. member and
+  append).                   
+
+
+INTERNAL DOCUMENTATION : Predicates are commented with a statement of
+their purpose. However, you will probably also need to read the report
+by Brazdil quoted in MULTAGNT.PL.

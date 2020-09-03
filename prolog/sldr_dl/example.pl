@@ -1,5 +1,10 @@
 
 
+
+:- [resolution].
+
+
+
 rule_set(RuleSet,MaxRuleID):-
   MaxRuleID = 7,
   RuleSet = [

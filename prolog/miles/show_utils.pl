@@ -126,7 +126,7 @@ show_clauses([Id1|Rest]) :- show_clause(Id1), nl, show_clauses(Rest).
 %* args:         I: an ID in KB
 %*               H: the head of a clause
 %*               B: the body of a clause
-%*               0: the label of a clause
+%*               O: the label of a clause
 %*
 %* description: displays a clause H:-B, used for xm 
 %*
