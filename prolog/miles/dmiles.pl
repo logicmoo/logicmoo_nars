@@ -136,12 +136,19 @@ do_full_kb(KB,Index,Goal):-
    show_kb, 
    catch(do_full_call_each(Goal),E,(dumpST,throw(E))),
    show_kb,   
-   format('~N==== DONE: ~w ========~n',[Index]))).
+   format('~N==== DONE: ~w ========~n~n',[Index]))).
 
 do_full_call_each((G1,G2)):- !, do_full_call_each(G1),do_full_call_each(G2).
-do_full_call_each((G1->G2)):- \+ \+ (( my_do_call(G1),!,term_variables(G2,Vars),my_do_call(G2),!, wdmsg(do_full_call_each((G1+G2=Vars))))), !.
-do_full_call_each(G1):-
-  \+ \+ (( term_variables(G1,Vars), my_do_call(G1),!, wdmsg(do_full_call_each((G1:Vars))))), !.
+do_full_call_each((G1->G2)):- 
+ \+ \+ (( 
+   wdmsg(do_call((G1->G2=Vars))), 
+  my_do_call(G1),!,term_variables(G2,Vars),my_do_call(G2),!, 
+  wdmsg(did_call((+Vars))))), !.
+do_full_call_each(G1):- G2 = true,
+ \+ \+ (( 
+   wdmsg(do_call((G1->G2=Vars))), 
+  my_do_call(G1),!,term_variables(G2,Vars),my_do_call(G2),!, 
+  wdmsg(did_call((+Vars))))),!.
 
 % my_do_call(G):- !, must_or_rtrace(G).
 my_do_call(G):- notrace(ignore(catch(G,_,true))).

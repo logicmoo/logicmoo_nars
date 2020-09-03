@@ -59,10 +59,9 @@
 %*
 %***********************************************************************
 
-show_kb :- get_clause(I,H,B,_,O),
-           nl, write('Clause '),write(I),write(': '),
-           write('(label '),write(O),write(')'),
-           portray_clause((H:-B)),fail.
+show_kb :- get_clause(I,H,B,_,O),      
+           show_kb_clause(I,H,B,O),
+           fail.
 show_kb :- !.
 
 
@@ -134,9 +133,10 @@ show_clauses([Id1|Rest]) :- show_clause(Id1), nl, show_clauses(Rest).
 %************************************************************************
 
 show_kb_clause(I,H,B,O):-
-	  write('Clause '),write(I),write(': '),
-	  write('(label '),write(O),write(')'),
-	  portray_clause((H:-B)).
+	  format('~N~n% Clause ~w (label ~w)~n',[I, O]),
+          \+ \+ ((guess_varnames((H:-B)),
+                  implode_varnames((H:-B)),
+                  portray_clause((H:-B)))), !.
 
 
 %***********************************************************************
