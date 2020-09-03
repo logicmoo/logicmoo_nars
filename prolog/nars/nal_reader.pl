@@ -50,6 +50,7 @@ do_reader_tests:- forall(a_nal_test(Test),try_reader_test(Test)).
 
 
 
+% try_reader_test(Test):- is_stream(Test), !, \+ is_compound(Test), open_string(Test,Stream), try_reader_test(Stream).
 try_reader_test(Test):- call_nal('dmsg',Test,Out).
 
 
@@ -128,11 +129,4 @@ into_nal_tokenized(Text,TokenizedText):-
   join_atomics('\n',ListOfStrings,TokenizedText),!.
 
 
-
-
-
-  read_nal(Stream,Term,Vs),wdmsg(Term-Vs),!.
-
-try_reader_test(Test):- is_stream(Test), !, \+ is_compound(Test), open_string(Test,Stream), try_reader_test(Stream).
-  read_nal(Stream,Term,Vs),wdmsg(Term-Vs),!.
 

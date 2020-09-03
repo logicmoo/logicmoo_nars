@@ -4,6 +4,11 @@
 % GNU Lesser General Public License
 % Author: Pei Wang
 
+:-module(nal,[]).
+
+:- set_module(class(library)).
+:- set_module(base(system)).
+
 % This program covers the inference rules of upto NAL-6 in
 % "Non-Axiomatic Logic: A Model of Intelligent Reasoning"
 % For the details of syntax, see the "User's Guide of NAL"
@@ -696,6 +701,9 @@ u_or([N0 | Nt], N) :-
 u_w2c(W, C) :-
 	K = 1, C is (W / (W + K)), !.
 
+:- fixup_exports.
+
+
 /*
 User's Guide of NAL
 Input/Output Language
@@ -742,3 +750,4 @@ inference(J1, J).
 Judgment J is the conclusion derived from judgment J1 as single premise.
 
 */
+
