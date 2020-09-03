@@ -23,7 +23,9 @@ end_of_file.
 
 try:
 
-:- init_kb(/tmp_mnt/home/stahl/edl/framework/miles/examples/ex8.pl).
+| ?- clear_kb, do_full_kb('examples/ex8.pl').
+
+:- init_kb('examples/ex8.pl').
 % file "/tmp_mnt/home/stahl/edl/framework/miles/examples/ex8.pl" consulted.
 :- argument_types.
 % yes

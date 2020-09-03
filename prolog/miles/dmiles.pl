@@ -116,3 +116,110 @@ save_predicates(List,Filename):- tell(Filename),listing(List),told.
 prompt(X):- format('~N~w ',[X]). 
 
 :- expects_dialect(sicstus).
+
+do_full_kb(KB):- 
+ nth_clause(do_full_kb1,Index,_),
+ do_full_kb(KB,Index).
+
+do_full_kb(KB,Index):-
+ nth_clause(do_full_kb1,Index,Ref),
+ clause(do_full_kb1,Goal,Ref),
+ do_full_kb(KB,Index,Goal).
+
+do_full_kb(KB,Index,Goal):-
+ once((
+  format('===================',[]),
+  format('======= Nth: ~w  ~p  =======',[Index,Goal]),
+  format('===================',[]),
+   clear_kb, init_kb(KB),
+   show_kb, 
+   do_full_call_each(Goal),
+   show_kb)).
+
+do_full_call_each((G1,G2)):- !, do_full_call_each(G1),do_full_call_each(G2).
+do_full_call_each((G1->G2)):- \+ \+ (( call(G1),!,term_variables(G2,Vars),call(G2),!, wdmsg(do_full_call_each((G1+G2=Vars))))), !.
+do_full_call_each(G1):-
+  \+ \+ (( term_variables(G1,Vars), call(G1),!, wdmsg(do_full_call_each((G1:Vars))))), !.
+ 
+do_full_kb1:- 
+ argument_types,
+ show_kb,
+ complete_chk,  %% Antwort: no
+ ip(A),         %% gibt alle unabgedeckten Bsple zur"uck
+ clause_heads, eval_examples,
+ show_kb,
+ complete_chk,  %% geht jetzt gut
+ correct_chk,
+ fp(A),         %% gibt inkorrekte Klausel(n) + ihre Instantiierung(en) zur"uck
+                    %% in der Form [ID:[Instanz]]
+ refinement(_ID,_),  %% wobei ID der der inkorrekten Klausel ist -> gibt 
+                        %% Spezialisierungen dieser Klausel (in einer Liste)
+ flatten_kb.    %% kb funktionsfrei machen
+
+do_full_kb1:- 
+ intra_construct1(1,2,A,B,C) -> show_clauses([1,2,A,B,C]),
+ g2_op(1,2,A,B,C),   %% stellt Fragen
+ show_kb,
+ identify(4,3,J) -> show_clause(J),
+ identify(5,_I,J) -> show_clause(J),
+ apply_g2([4,5,10],_A,_BB).
+
+do_full_kb1:- 
+ intra_construct1(10,11,_A,_B,_C),
+ show_clauses([10,11,13,14,15]),
+ g1_op(5,1,I),
+ g1_op(5,3,I),
+ absorb(5,1,I),
+ elem_saturate(5,1,I),
+ saturate(5,I,10),
+ most_spec_v(5,I,J),
+ inv_derivate(5,J),
+ show_kb,
+ lgg(7,9,J) -> show_clause(J).
+
+do_full_kb1:-  
+  nr_lgg(7,9,J) -> show_clause(J),
+  get_clause(J,_,_,CL,_),reduce_complete(CL,CL1),
+  store_clause(_,CL1,nrlgg,I), show_clause(I).
+
+do_full_kb1:-  
+ gen_msg(5,6,J,10) -> show_clause(J),
+ gti(8,9,J) -> show_clause(J).
+
+do_full_kb1:- 
+ rlgg(5,6,J) -> show_clause(J).
+
+
+do_full_kb1:- 
+ lgg(1,2,J) -> show_clause(J),
+ nr_lgg(1,2,J) -> show_clause(J),
+ lgg(3,4,J) -> show_clause(J),
+ nr_lgg(3,4,J) -> show_clause(J),
+ gti(3,4,J) -> show_clause(J),  % erlaubt backtracking!
+ lgti(3,4,C,_,_),
+ lgg(8,9,J) -> show_clause(J),
+ rlgg(8,9,J) -> show_clause(J),
+ rlgg(8,9,cuddly_pet(_),J) -> show_clause(J),
+ gen_msg(8,9,J) -> show_clause(J),
+ rlgg(10,11,J) -> show_clause(J),
+ intra_construct1(14,15,A,B,C) -> show_clauses([14,15,A,B,C]),
+ intra_construct2(16,17,A,B,C) -> show_clauses([16,17,A,B,C]).
+
+
+%% Sei ID1 der der Klausel:
+%% app(A,B,C) :- cons_p(D,E,A),x_p(D),cons_p(F,G,E),a_p(F),nil_p(G),
+%%               cons_p(H,I,B),b_p(H),cons_p(J,G,I),c_p(J),cons_p(D,K,C),cons_p(F,B,K),
+%% ID2 der der Klausel:
+%% app(A,B,C) :-                      cons_p(D,E,A),a_p(D),nil_p(E),
+%%               cons_p(F,G,B),b_p(F),cons_p(H,E,G),c_p(H),cons_p(D,B,C),
+
+% Dann teste:
+do_full_kb1:- 
+ absorb(ID1,ID2,J) -> show_clause(J),
+ elem_saturate(ID1,ID2,J1) -> show_clause(J1),
+ saturate(ID1,J2,5) -> show_clause(J2),
+ unflatten_kb,
+ !.
+
+
+ 

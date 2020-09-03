@@ -51,6 +51,8 @@ column(X):- block(X), standing(X), is_on(X,Y), column(Y).
 end_of_file.
 
 
+?- do_full_kb('examples/ex2.pl').
+
 try      
 
 | ?- clear_kb, init_kb('examples/ex2.pl').
@@ -81,7 +83,7 @@ X-MILES Protocol:
 
 :- clear_kb.
 % knowledgebase cleared.
-:- init_kb(/tmp_mnt/home/stahl/edl/framework/miles/examples/ex2.pl).
+:- init_kb('examples/ex2.pl').
 % file "/tmp_mnt/home/stahl/edl/framework/miles/examples/ex2.pl" consulted.
 :- intra_construct1(10,11,Xmout1,Xmout2,Xmout3).
 % yes
@@ -167,7 +169,7 @@ X-MILES Protocol:
 % all examples deleted.
 :- clear_kb.
 % knowledgebase cleared.
-:- init_kb(/tmp_mnt/home/stahl/edl/framework/miles/examples/ex2.pl).
+:- init_kb('examples/ex2.pl').
 % file "/tmp_mnt/home/stahl/edl/framework/miles/examples/ex2.pl" consulted.
 :- rlgg(5,6,Xmout1).
 % yes

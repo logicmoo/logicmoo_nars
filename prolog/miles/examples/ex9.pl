@@ -45,8 +45,10 @@ ex(merge([6,7],[4],[6,7,4]),'-').
 
 end_of_file.
 
+| ?- clear_kb, do_full_kb('examples/ex9.pl').
+
 try:
-:- init_kb(/tmp_mnt/home/stahl/edl/framework/miles/examples/ex9.pl).
+:- clear_kb, init_kb('examples/ex9.pl').
 % file "/tmp_mnt/home/stahl/edl/framework/miles/examples/ex9.pl" consulted.
 :- store_clause(merge([],[2],[2]),_,user,28).
 % rule added.
