@@ -5,6 +5,8 @@
 %
 % Statistics and I/O
 
+:- expects_dialect(sicstus).
+:- use_module(library(dialect/sicstus/system)).
 
 print_tourn_stats(Gen) :-
 	collect_stats(Gen), % should replace with param passing
@@ -33,11 +35,23 @@ collect_stats(Gen) :-
 	bagof(D, ID^VV^E^(individual(ID, VV, E),tree_depth(E,D)), M),
 	average(M, AvgDepth),
 	%time_stamp('%h:%02i:%02s%a',T),
-	datime(datime(_,_,_,Hour,Minute,Sec)),	
+	% datime(datime(_,_,_,Hour,Minute,Sec)),
+        since_last_datime(total,call,HourT,MinuteT,SecT),
+        since_last_datime(generation,retract,Hour,Minute,Sec),
 	(retract(gp_stats(Gen,_,_,_,_,_,_,Lamarck)) ; true),
-	assertz(gp_stats(Gen,Hour:Minute:Sec, best(Min, SizeB, Bexpr),
+	assertz(gp_stats(Gen,Hour:Minute:Sec/HourT:MinuteT:SecT, best(Min, SizeB, Bexpr),
 			 worst(Max, SizeW),avg(Avg),AvgDepth,Lamarck)),
 	!.
+
+since_last_datime(For,SetReset,Hour,Minute,Sec):- 
+   once(call(SetReset,got_time(For,Was));Was=0),
+   get_time(Now),
+   DiffTime is Now - Was,
+   (SetReset==retract -> asserta(got_time(For,Now)) ; true),
+   stamp_date_time(DiffTime, date(_Year,_Month,_Day,Hour,Minute,Sec,_,_,_), 'UTC'),!.
+
+:- dynamic(got_time/2).
+:- get_time(Now),asserta(got_time(total,Now)),asserta(got_time(total,Now)).
 
 % print run statistics
 dump_stats(Run) :-
@@ -46,7 +60,8 @@ dump_stats(Run) :-
 	set_file_name("stats", Run, File),
 	tell(File),	
 	%once(time_stamp('Date: %W, %d %M %y    Time: %c:%02i%a', DateTime)),
-	datime(datime(Year,Month,Day,Hour,Min,Sec)),
+        since_last_datime(total,retract,Hour,Min,Sec),	
+        datime(datime(Year,Month,Day,_DA_Hour,_DA_Min,_DA_Sec)),
 	writel([nl,nl,'***** Summary statistics: Run ', Run, ' *****',nl,nl,
 		(Year-Month-Day-Hour:Min:Sec), nl, nl]),
 	gp_stats(Gen, Time, Best, Worst, Avg, AvgDepth, Lamarck), % loops for all

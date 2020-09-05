@@ -122,6 +122,9 @@ hill_climb(K, BestSoFar, Soln) :-
 select_best((F1, E1), (F2, _), (F1, E1)) :- F1 =< F2, !.
 select_best(_, X, X).
 
+
+sre_mutation(I,C):- mutation(I,C).
+
 % some debugging code...
 
 test_best_first(Iter, ID) :-

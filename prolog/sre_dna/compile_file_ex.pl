@@ -490,7 +490,7 @@ cull_method_P(elite).
 
 population_size_P(75, 50).
 
-dctg_file_P('sre3').
+dctg_file_P('sre3.pl').
 
 fitness_func_P('reg_gram_1').
 

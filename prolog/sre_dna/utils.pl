@@ -22,8 +22,8 @@ memberd(A, L) :- once(member(A,L)).
 % Note: N must be uninstantiated!
 
 my_random(R, N) :-
-	S is R + 1,
-	random(1, S, N),
+       % S is R + 1,
+	random_between(1, R, N),
 	!.
 
 % probability2(P, M) satisfied when random number between 0 and M
@@ -41,7 +41,7 @@ size_of([_|R], K) :-
 	K is L + 1,
 	!.
 
-once(P) :- P, !.
+% once(P) :- P, !.
 
 writel([]) :- !, ttyflush.
 writel([A|R]) :- var(A), !, write(A), write(' '), writel(R).

@@ -122,6 +122,8 @@ tabulate_set([_|R], Min, Sum, S) :-
 	!,
 	tabulate_set(R, Min, Sum, S).
 
+:- multifile(chisquare/4).
+:- dynamic(chisquare/4).
 temp_test(Fitness) :-
 	generate_tree(expr, full, 12, _, Tree1, _),
 	write('Mining 1... '),

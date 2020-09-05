@@ -3,15 +3,19 @@
 ?- use_module(library(system)).
 ?- use_module(library(lists)).
 
-?- compile('dynamics').
-?- consult('dctg').
-?- consult('parameters_P').
-?- compile('operators').
-?- consult('dctg_pp').
-?- compile('utils').
+?- compile(dynamics).
+?- consult(dctg).
+?- consult(parameters_P).
+?- compile(operators).
+?- consult(dctg_pp).
+?- compile(utils).
+
 ?- dctg_file_P(FileDCTG),grammar(FileDCTG), make_grammar_table.
-?- tell(compile_file),     % fast: new
-	write('?- use_module(library(lists)).'),nl,
+?- tell('compile_file.pl'),     % fast: new
+	write('
+?- use_module(library(lists)).
+        '),
+        nl,
 	listing,
 	told.
 
@@ -29,6 +33,6 @@
 
 ?- fitness_func_P(File), compile(File). 
 
-?- compile(fast:compile_file).
+?- fast:compile('compile_file.pl').
 ?- clean_up.
 

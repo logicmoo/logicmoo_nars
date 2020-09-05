@@ -12,15 +12,15 @@
 %   individual(ID_number, Fitness, Expression)
 %   newindividual(ID_number, Fitness, Expression) (for separate gen)
 
-gp :-   clean_up_1,
+gp :-   clean_up_1,        
 	assert(best_so_far(_, _, 1000, _)),
 	max_runs_P(MaxRuns, RunType, _), % from gp_defn file
 	!,
 	meta_run_loop(1, MaxRuns, RunType),
 	writel(['*** END ***', nl, nl]).
 
-meta_run_loop(Runs, MaxRuns, _) :-
-	Runs > MaxRuns,
+meta_run_loop(Runs, MaxRuns, _) :-     
+	Runs > MaxRuns, !,
 	best_so_far(Run, Gen, Fitness, Expr),
 	writel([nl,'--> Max run', MaxRuns, ' reached.',nl,
 		'Best found in run ', Run, ' gen ', Gen, ':', nl,
@@ -28,12 +28,14 @@ meta_run_loop(Runs, MaxRuns, _) :-
 		'   Fitness = ', Fitness, nl, nl]),
 	writel(['--> Finished runs <--', nl, nl]),
 	!.
-meta_run_loop(Run, MaxRuns, RunType) :-
+meta_run_loop(Run, MaxRuns, RunType) :-        
 	Run =< MaxRuns,
 	population_size_P(_, PopSize),  % gp_parameters
 	max_runs_P(_, _, MaxGen),   % gp_parameters
 	writel([nl, '---------------------  Run ', Run, 
 		    ' ---------------------', nl]),
+        since_last_datime(total,retract, _Hour,_Minute,_Sec),
+        since_last_datime(generation, retract, _, _, _),
 	do_the_run(0, MaxGen, PopSize),
 	write('Dumping stats... '),
 	dump_stats(Run),
@@ -47,7 +49,7 @@ meta_run_loop(Run, MaxRuns, RunType) :-
 
 do_the_run(Gen, MaxGen, _) :- Gen > MaxGen, !.
 do_the_run(_, _, _) :- solved_run, !.
-do_the_run(0, MaxGen, PopSize) :-
+do_the_run(0, MaxGen, PopSize) :-        
 	clean_up_2,
 	assert(best_in_run(_, 1000, _)),
 	writel([nl, '********* Generation ', 0, '*********', nl]),
@@ -302,3 +304,4 @@ copy_elite([(V,K)|B], ReEval) :-
 	!,
 	copy_elite(B, ReEval).
 
+evaluator(_K, E, V2):- evaluator(E, V2).

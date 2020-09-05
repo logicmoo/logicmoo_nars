@@ -52,6 +52,7 @@
 %		  if X = random, then system timer used to initialize 
 %		  (Y set by program to seeds used, for reinit later)
 %                 X=manual means Y = (A, B, C) are seed integers 1...30,000
+:- dynamic(debug_set_P/1).
 % debug_set_P(yes): for additional debug printing, if implemented
 % popn_dump_P(no)	- if yes, then population dumped at end of each gen
 % gen_type_P(T)		- generation type: T = steadystate, separate
@@ -76,10 +77,10 @@
 %			  	else don't include
 
 
-wd_P('c:/research/sre_dna_fast_xfer').
+wd_P('/pack/narsese/prolog/sre_dna/').
 
-fitness_func_P('reg_gram_1').
-dctg_file_P('sre3').
+fitness_func_P('reg_gram_1.pl').
+dctg_file_P('sre3.pl').
 
 population_size_P(750, 500).	% <-- 750, 500
 cull_method_P(elite).		% <-- tournament
@@ -92,7 +93,8 @@ prob_terminal_mutation_P(0.75). % <-- 0.75 or no
 max_depth_P(10, 17).		% <-- 6, 17
 error_tolerance_P(0).		% <-- 0.000001
 tournament_size_P(4, 4).	% <-- 2, 3
-lamarckian_P(0.0,10, best, 0.1). % <-- 0.25, 10, best, 0.20; (0.0,...) = off
+% lamarckian_P(0.0,10, best, 0.1). % <-- 0.25, 10, best, 0.20; (0.0,...) = off
+lamarckian_P(0.25, 10, best, 0.20). 
 unique_population_P(yes).	% <-- no
 trace_limit_P(0, 0).		% <-- (40, 90) 
 rep_limit_P(2).			% <-- 3
