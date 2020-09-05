@@ -1,6 +1,3 @@
-/*  LEARNER1.PL  */
-
-
 % Right knowledge of a learner about different topics
 
 % Fact theory
@@ -35,29 +32,29 @@ db_entry(learner:entropy, entropy_increases(A,B),[warm(A),cold(B),door(A,B)]).
 db_entry(learner:entropy, entropy_increases(A,B),[cold(A),warm(B),door(A,B)]).
 db_entry(learner:entropy, entropy_increases(A,B),[warm(A),cold(B),door(B,A)]).
 db_entry(learner:entropy, entropy_increases(A,B),[cold(A),warm(B),door(B,A)]).
- 
+
 % Recusive Theory
- 
+
 db_entry(learner:t_member, member(A,[A|_]),[]).
 db_entry(learner:t_member, member(A,[_|B]),[member(A,B)]).
- 
+
 db_entry(learner:t_append, append([],List,List),[]).
 db_entry(learner:t_append, append([First|Rest],List,[First|TempList]),
-               [append(Rest,List,TempList)]).
- 
+			   [append(Rest,List,TempList)]).
+
 def_theory(learner:t_reverse,[learner:t_append]).
 db_entry(learner:t_reverse,reverse([],[]),[]).
 db_entry(learner:t_reverse,reverse([X|Y],Z),
-               [reverse(Y,Y1),append(Y1,[X],Z)]).
- 
+			   [reverse(Y,Y1),append(Y1,[X],Z)]).
+
 def_theory(learner:qsort,[learner:partition,learner:t_append]).
 db_entry(learner:qsort,qsort([],[]),[]).
 db_entry(learner:qsort,qsort([X|L],L5),
-               [partition(L,X,L1,L2),qsort(L1,L3),
-                qsort(L2,L4),append(L3,[X|L4],L5)]).
+		       [partition(L,X,L1,L2),qsort(L1,L3),
+		        qsort(L2,L4),append(L3,[X|L4],L5)]).
 
 db_entry(learner:partition,partition([],_,[],[]),[]).
 db_entry(learner:partition,partition([X|L],Y,[X|L1],L2),
-               [X < Y, partition(L,Y,L1,L2)]).
+			   [X < Y, partition(L,Y,L1,L2)]).
 db_entry(learner:partition,partition([X|L],Y,L1,[X|L2]),
-               [X >= Y, partition(L,Y,L1,L2)]).
+			   [X >= Y, partition(L,Y,L1,L2)]).

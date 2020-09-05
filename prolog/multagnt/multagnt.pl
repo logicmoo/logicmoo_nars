@@ -27,7 +27,9 @@
 /*  call        : diagnosis                                       */
 /*                                                                */
 /******************************************************************/
- 
+
+:- dynamic(parent/2).
+
 /******************************************************************/
 /* YAP-, C- and M-Prolog specific declaration of dynamical        */
 /* clauses.                                                       */
@@ -38,7 +40,7 @@
  
 :- op(999,xfx,:).
 :- op(998,xfx,'<-').
- 
+
 /******************************************************************/
 /* User Interface                         */
 /******************************************************************/
@@ -51,8 +53,18 @@ diagnosis :-
  
 init :-
     abolish(db_entry,3),
-    abolish(def_theory,2).
- 
+    abolish(def_theory,2),
+    multifile(db_entry/3),
+    multifile(def_theory/2),
+   dynamic(db_entry/3),
+   dynamic(def_theory/2).
+
+:- init.
+
+:- [teacher].
+
+:- [learner1].
+
 locate_error :-
     repeat,
     mode(Mode),
@@ -115,7 +127,7 @@ out_ans([val(Var,Val)|T]) :-
  
 select_question(Question) :-
     generate_question(Question),
-    yes_no('confirm',Reply),
+    yes_no(yes, 'confirm',Reply),
     Reply = yes.
 select_question(_) :-
     write(' no more questions'), nl, !, fail.
@@ -134,29 +146,29 @@ get_question(Question) :-
  
 mode(auto) :-
     nl, nl,
-    yes_no(' Do you want the system to generate questions ? ',Reply),
+    yes_no(yes, ' Do you want the system to generate questions ? ',Reply),
     nl,
     Reply = yes,
     !.
 mode(manual).
  
 exit_manual :-
-    yes_no(' Exit manual mode ? ',Reply),
+    yes_no(no, ' Exit manual mode ? ',Reply),
     Reply = yes.
  
 exit_auto :-
-    yes_no(' Exit auto mode ? ',Reply),
+    yes_no(no, ' Exit auto mode ? ',Reply),
     Reply = yes.
  
 exit :-
-    yes_no(' Quit ? ',Reply),
+    yes_no(no, ' Quit ? ',Reply),
     Reply = yes.
  
 get_teacher(Teacher) :-
-    yes_no(' Do you want to load the provided teacher KB ? ',Reply),
+    yes_no(yes, ' Do you want to load the provided teacher KB ? ',Reply),
     load_knowledge_base(Reply,Teacher),
     knowledge_base_list(Reply,[],Teacher,FileList),
-    yes_no(' Do you want to load another teacher KB ? ',Reply2),
+    yes_no(no, ' Do you want to load another teacher KB ? ',Reply2),
     more_knowledge(Reply2,FileList).
  
 load_knowledge_base(no,_).
@@ -173,25 +185,28 @@ more_knowledge(yes,FileList) :-
     not_loaded(File,FileList,Load),
     load_knowledge_base(Load,File),
     knowledge_base_list(Load,FileList,File,NewList),
-    yes_no(' Do you want to consult more KBs ? ',Reply),
+    yes_no(no, ' Do you want to consult more KBs ? ',Reply),
     more_knowledge(Reply,NewList).
  
 not_loaded(File,List,no) :-
     member(File,List), !.
 not_loaded(_,_,yes).
- 
-yes_no(Message,Reply) :-
+
+%yesno(Question):- yesno(Question,no).
+%yesno(Question, Default):- format('~N~w? (~w): ',[Question,Default]),get_single_char(YN), (YN = 13 -> Default==yes; member(YN, `yY`)).
+
+yes_no(Default, Message,Reply) :-
     repeat,
     write(' '),
     write(Message),
-    write(' (yes/no) '),
-    read_in(In),
-    reply(In,Reply), !.
+    (Default == yes -> write(' (Yes/no) ') ; write(' (yes/No) ')),
+    get_single_char(In),
+    ([In]=`e` -> (!,halt(4)) ; ([In]=`a` -> (!,abort) ;  (In = 13 ->  Reply = Default ; reply(In,Reply)))), !.
  
 reply(Reply,yes) :-
-    member(Reply,[yes,y,'yes.','y.']).
+    member(Reply,[yes,y,'yes.','y.'|`Yy`]).
 reply(Reply,no) :-
-    member(Reply,[no,n,'no.','n.']).
+    member(Reply,[no,n,'no.','n.'|`Nn`]).
  
 ask_file(Message,File) :-
     repeat,
@@ -209,7 +224,7 @@ get_learner :-
     ask_file(' Please input the filename for the learner KB: ',File),
     load_knowledge_base(yes,File),
     knowledge_base_list(yes,[],File,List),
-    yes_no(' Do you want to load another KB for the learner ? ',Reply),
+    yes_no(no,' Do you want to load another KB for the learner ? ',Reply),
     more_knowledge(Reply,List).
  
 /******************************************************************/
@@ -226,7 +241,7 @@ can_do_1(Teacher,Question,TeachersAnswer,LearnersAnswer) :-
     demo(Teacher,TeachersAnswer,LearnersAnswer).
  
 cannot_do(learner:Tl,teacher:Tt,Question,TeachersAnswer) :-
-    not(demo(learner:Tl,Question,LearnersAnswer)),
+    \+ demo(learner:Tl,Question,_LearnersAnswer),
     demo(teacher:Tt,Question,TeachersAnswer).
 cannot_do(Learner,Teacher,Question,_) :-
     can_do(Learner,Teacher,Question,_), !, fail.
@@ -235,14 +250,14 @@ cannot_do(learner:Tl,teacher:Tt,Question,TeachersAnswer) :-
 % It seems that the condition LearnersAnswer <> TeachersAnswer is missing !
     demo(teacher:Tt,Question,TeachersAnswer).
  
-what_cannot_do(_,_,Q <- _,_,_) :-
-    not all_ground_term(Q),
+what_cannot_do(_,_,'<-'(Q , _),_,_) :-
+    \+ all_ground_term(Q),
     nl, write(' *** You asked a non ground question !'), nl, !, fail.
-what_cannot_do(Ls,Ts,Q <- A,FaultyStep,FaultyStep) :-
+what_cannot_do(Ls,Ts,'<-'(Q , A),FaultyStep,FaultyStep) :-
     can_do(Ls,Ts,Q,A).
-what_cannot_do(Ls,Ts,Q <- A,F1,[Q <- A|F1]) :-
+what_cannot_do(Ls,Ts,'<-'(Q , A),F1,['<-'(Q , A)|F1]) :-
     is_faulty_step(Ls,Ts,Q,A).
-what_cannot_do(Ls,Ts,Q <- A,F1,F2) :-
+what_cannot_do(Ls,Ts,'<-'(Q , A),F1,F2) :-
     cannot_do(Ls,Ts,Q,A),
     demo_trace2(Ls,Ts,Q,A,SubSteps),
     what_cannot_do_list(Ls,Ts,SubSteps,F1,F3),
@@ -250,10 +265,10 @@ what_cannot_do(Ls,Ts,Q <- A,F1,F2) :-
  
 is_faulty_step(Ls,Ts,Q,A) :-
     cannot_do(Ls,Ts,Q,A), !,
-    not demo_trace2(Ls,Ts,Q,A,_).
+    \+ demo_trace2(Ls,Ts,Q,A,_).
  
-faulty_step(Q,A,F1,F1,[Q <- A|F1]).
-faulty_step(Q,A,F1,F3,F3).
+faulty_step(Q,A,F1,F1,['<-'(Q , A)|F1]).
+faulty_step(_Q,_A,_F1,F3,F3).
  
 what_cannot_do_list(_,_,[],F,F).
 what_cannot_do_list(Ls,Ts,[Step1|RestSteps],F1,F3) :-
@@ -307,7 +322,7 @@ demo(Theory,Goal,Conditions) :-
     !,
     show(Theory,Goal3),
     no_new_values(LVars3),
-    not identified_vars(LVars3),
+    \+ identified_vars(LVars3),
     !.
  
 /******************************************************************/
@@ -347,10 +362,13 @@ trace_list([SubGoal|Rest],[SubGoal <- _|Steps]) :-
 /* ly represented through terms in the form 'val(<var>,<term>)'.  */
 /******************************************************************/
 show(_,[]) :- !.
-show(Th, not G) :-
+show(Th, not(G)) :-
     !,
-    not show(Th,G).
-show(Th,val(X,Y)) :-
+    \+ show(Th,G).
+show(Th, \+ G) :-
+    !,
+    \+ show(Th,G).
+show(_Th,val(X,Y)) :-
     !,
     is_value(X,Y).
 show(Th,[G|Gs]) :-
@@ -364,15 +382,17 @@ show(Th,G) :-
     def_theory(Th,ThList),
     member(SubTh,ThList),
     show(SubTh,G).
+show(_,G) :- predicate_property(G,built_in),!,call(G).
+show(_,G) :- predicate_property(G,unknown),dynamic(G),fail.
 show(_,G) :-
-    not(clause(G,_)),
+    \+ clause(G,_),    
     call(G), !.
  
 is_value(X,Y) :-
     var(X), var(Y), !.
-is_value(X,Y) :-
+is_value(X,_) :-
     var(X), !, fail.
-is_value(X,Y) :-
+is_value(_,Y) :-
     var(Y), !, fail.
 is_value(X,X) :-
     atomic(X), !.
@@ -381,8 +401,8 @@ is_value([Head1|Tail1],[Head2|Tail2]) :-
     is_value(Head1,Head2),
     is_value(Tail1,Tail2).
 is_value(X,Y) :-
-    not atomic(X),
-    not atomic(Y),
+    \+ atomic(X),
+    \+ atomic(Y),
     X =..[F|ArgsX],
     Y =..[F|ArgsY],
     !,
@@ -506,10 +526,10 @@ all_ground_term(Structure) :-
     all_ground_term(Args).
  
 check_goal(Goal) :-
-    not all_ground_term(Goal),
+    \+ all_ground_term(Goal),
     write(' *** Only ground terms in goal allowed !'), !, fail.
 check_goal(Goal) :-
-    not proper_variable(Goal),
+    \+ proper_variable(Goal),
     write(' *** <name> of any variable(<name>) should be atomic ground !'),
     !, fail.
 check_goal(_).
@@ -517,7 +537,7 @@ check_goal(_).
 proper_variable(Atom) :-
     atomic(Atom), !.
 proper_variable(variable(Name)) :-
-    not atomic(Name),
+    \+ atomic(Name),
     write(' *** variable('), write(Name), write(') not atomic'), nl,
     !, fail.
 proper_variable([Head|Tail]) :-
@@ -529,10 +549,10 @@ proper_variable(Structure) :-
     proper_variable(Args).
  
 check_conditions(Cond) :-
-    not all_ground_term(Cond),
+    \+ all_ground_term(Cond),
     write(' *** Only ground terms in conditions allowed !'), !, fail.
 check_conditions(Cond) :-
-    not proper_format(Cond),
+    \+ proper_format(Cond),
     write(' *** Conditions should be either an uninstanziated variable'),
     nl,
     write('     or a list of structures, val(variable(<name>),<value>) !'),
@@ -543,21 +563,25 @@ proper_format([]).
 proper_format([val(variable(Atom),_)|Tail]) :-
     atomic(Atom),
     proper_format(Tail).
- 
-make_ground_term(Variable) :-
+
+make_ground_term(Body3):- make_ground_term(10, Body3).
+
+make_ground_term(_D,Variable) :-
     var(Variable),
     new_symbol(X),
     Variable = variable(X), !.
-make_ground_term(Atom) :-
+make_ground_term(_D,Atom) :-
     atomic(Atom), !.
-make_ground_term([Head|Tail]) :-
+make_ground_term(D,_) :- D == 0, format(user_error,'~N~q~n',[make_ground_term(D,_)]) , !,fail.
+make_ground_term(D,[Head|Tail]) :- % \+ is_list(Head),
+    !, D2 is D - 1,
+    make_ground_term(D2,Head),
     !,
-    make_ground_term(Head),
-    !,
-    make_ground_term(Tail).
-make_ground_term(Structure) :-
+    make_ground_term(D2,Tail).
+make_ground_term(D,Structure) :- compound(Structure),!,
+    D2 is D - 1,
     Structure =.. [_|Args],
-    make_ground_term(Args).
+    make_ground_term(D2,Args).
  
 /******************************************************************/
 /*                                                                */
@@ -602,7 +626,7 @@ identified_vars([_|T]) :-
 /* 'same_var' succeeds if Var1 and Var2 are unified, but uninstan-*/
 /* tiated.                                                */
 /******************************************************************/
-same_var(dummy,T) :-
+same_var(dummy,Y) :-
     var(Y), !, fail.
 same_var(X,Y) :-
     var(X), var(Y).
@@ -651,7 +675,7 @@ rcl(C1,[C1|P]) :-
     space(C1),
     get0(C2),
     rcl(C2,P).
-rcl(C1,L) :-
+rcl(_C1,L) :-
     put(7),
     get0(C2),
     rcl(C2,L).
@@ -689,3 +713,4 @@ reverse([],[]).
 reverse([X|Y],Z) :-
     reverse(Y,Y1),
     append(Y1,[X],Z).
+

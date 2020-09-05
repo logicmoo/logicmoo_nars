@@ -24,7 +24,7 @@ min1(F,[s(s(F))|G]):- min1(F,G).
 
 end_of_file.
 
-| ?- clear_kb,do_full_kb('examples/ex4.pl').
+| ?- clear_kb,do_full_kb('examples/ex3.pl').
 
 Try:
 | ?- clear_kb, init_kb('examples/ex3.pl').
