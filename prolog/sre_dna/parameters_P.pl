@@ -93,8 +93,8 @@ prob_terminal_mutation_P(0.75). % <-- 0.75 or no
 max_depth_P(10, 17).		% <-- 6, 17
 error_tolerance_P(0).		% <-- 0.000001
 tournament_size_P(4, 4).	% <-- 2, 3
-% lamarckian_P(0.0,10, best, 0.1). % <-- 0.25, 10, best, 0.20; (0.0,...) = off
-lamarckian_P(0.25, 10, best, 0.20). 
+lamarckian_P(0.0,10, best, 0.1). % <-- 0.25, 10, best, 0.20; (0.0,...) = off
+% lamarckian_P(0.25, 10, best, 0.20). 
 unique_population_P(yes).	% <-- no
 trace_limit_P(0, 0).		% <-- (40, 90) 
 rep_limit_P(2).			% <-- 3
