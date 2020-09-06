@@ -109,86 +109,85 @@ sentence(X,S,T,O)-->
 
 statement(S)--> maybe_some_white(statement0(S)).
 statement0(S)--> 
-        `<` ,!, term(A), copula(R), term(B), `>` ,   {S=..[R,A,B]}            % two, terms related to each other 
-      ;  l_paren, `^` , term_list(L), paren_r,       {S= exec(L)}             % an operation to be executed 
-      ;  l_paren, term(A), copula(R), term(B), `)`,  {S=..[R,A,B]}            % two, terms related to each other, new notation 
-      ;  word(A), l_paren, term_list(L), paren_r,    {S= exec([A|L])}         % an operation to be executed, new notation 
-      ;  term1(X),                                   {S= statement(X)}        % a, term, can name a statement(S) 
+        `<` ,!, term(A), copula(R), term(B), `>` ,   {S=..[R,A,B]}   % two, terms related to each other 
+      ;  l_paren, `^` , term_list(L), paren_r,       {S= exec(L)}    % an operation to be executed 
+      ;  l_paren, term(A), copula(R), term(B), `)`,  {S=..[R,A,B]}   % two, terms related to each other, new notation 
+      ;  word(A), l_paren, term_list(L), paren_r,    {S= exec([A|L])}% an operation to be executed, new notation 
+      ;  term1(X),                   {S= statement(X)}               % a, term, can name a statement(S) 
       .
          
 
 copula(X) -->      
-            o(`-->` ,X,                                                  inherits )
-         ;  o(`<->` ,X,                                                  similar )
-         ;  o(`{--` ,X,                                                  instance )
-         ;  o(`--]` ,X,                                                  property )
-         ;  o(`{-]` ,X,                                                  instance_prop )
-         ;  o(`==>` ,X,                                                  implication )
-         ;  o(`=/>` ,X,                                                  predictive_impl )
-         ;  o(`=|>` ,X,                                                  concurrent_impl )
-         ;  o(`=\\>` ,X,                                                 retrospective_impl )
-         ;  o(`<=>` ,X,                                                  equiv )
-         ;  o(`</>` ,X,                                                  predictive_equiv )
-         ;  o(`<|>` ,X,                                                  concurrent_equiv )
-         ;  o(`=>` ,X,                                                  unknown_impl )
+            o(`-->` ,X,                          inheritance )
+         ;  o(`<->` ,X,                          similarity )
+         ;  o(`{--` ,X,                          instance )
+         ;  o(`--]` ,X,                          property )
+         ;  o(`{-]` ,X,                          inst_prop )
+         ;  o(`==>` ,X,                          implication )
+         ;  o(`=/>` ,X,                          predictive_impl )
+         ;  o(`=|>` ,X,                          concurrent_impl )
+         ;  o(`=\\>` ,X,                         retrospective_impl )
+         ;  o(`<=>` ,X,                          equiv )
+         ;  o(`</>` ,X,                          predictive_equiv )
+         ;  o(`<|>` ,X,                          concurrent_equiv )
+         ;  o(`=>` ,X,                           unknown_impl )
          .
 
-term(S)--> word(S)                                                              % an atomic constant, term,                 
-        ;  variable(S)                                                          % an atomic variable, term, 
-        ;  compound_term(S)                                                     % a, term, with internal structure 
-        ;  statement(S)                                                         % a statement can serve as a, term, 
+term(S)--> word(S)                         % an atomic constant, term,         
+        ;  variable(S)                     % an atomic variable, term, 
+        ;  compound_term(S)                % a, term, with internal structure 
+        ;  statement(S)                    % a statement can serve as a, term, 
         .
 
-term1(S)--> word(S)                                                             % an atomic constant, term,                 
-        ;  variable(S)                                                          % an atomic variable, term, 
-        ;  compound_term(S)                                                     % a, term, with internal structure 
+term1(S)--> word(S)                        % an atomic constant, term,         
+        ;  variable(S)                     % an atomic variable, term, 
+        ;  compound_term(S)                % a, term, with internal structure 
         .
 
-compound_term(S)--> nal_dcgUnless(`<`),!,
-(
-      o(op_ext_set,X,ext_set), term_list(L), `}`                                                     % extensional set 
-   ;  o(op_int_set,X,int_set), term_list(L), `]`                                                     % intensional set 
-   ;  l_paren, op_multi(X), comma, term_list(L), paren_r                                     % with prefix operator 
-   ;  l_paren, op_single(X), comma, term(A), comma, term(B), paren_r, {L=[A,B]}              % with prefix operator 
-   ;  l_paren, o(op_ext_image,X), comma, term_list(L), paren_r                               % special case, extensional image 
-   ;  l_paren, o(op_int_image,X), comma, term_list(L), paren_r                               % special case, \ intensional image 
-   ;  l_paren, o(op_negation,X), comma, term(AB), paren_r,{S= neg(AB)}                       % negation 
-   ;  op_negation, term(AB),{S= neg(AB)}                                                     % negation, new notation 
-   ;  l_paren, term(A), op_multi(X), term(B), paren_r,{L=[A,B]}                              % with infix operator 
-   ;  l_paren, term(A), op_single(X), term(B), paren_r,{L=[A,B]}                             % with infix operator 
-   ;  l_paren, {X=product}, term_list(L), paren_r                                            % product, new notation 
-   ), {var(S)-> S=..[X,L] ; true}.
+compound_term(S)--> nal_reader_unless(`<`),!,
+   (  o(op_ext_set,X,ext_set), term_list(L), `}`                % extensional set 
+   ;  o(op_int_set,X,int_set), term_list(L), `]`                % intensional set 
+   ;  l_paren, op_multi(X), comma, term_list(L), paren_r                        % with prefix operator 
+   ;  l_paren, op_single(X), comma, term(A), comma, term(B), paren_r, {L=[A,B]} % with prefix operator 
+   ;  l_paren, o(op_ext_image,X,ext_image), comma, term_list(L), paren_r        % special case, extensional image 
+   ;  l_paren, o(op_int_image,X,int_image), comma, term_list(L), paren_r        % special case, \ intensional image 
+   ;  l_paren, o(op_negation,X,negation), comma, term(AB), paren_r,{L=[AB]}     % negation 
+   ;  o(op_negation,X,negation), term(AB),{L=[AB]}                              % negation, new notation 
+   ;  l_paren, term(A), op_multi(X), term(B), paren_r,{L=[A,B]}                 % with infix operator 
+   ;  l_paren, term(A), op_single(X), term(B), paren_r,{L=[A,B]}                % with infix operator 
+   ;  l_paren, {X=product}, term_list(L), paren_r                               % product, new notation 
+   ), {S=..[X,L]}.
 
-op_int_set-->`[`.                                                                       % intensional set 
-op_ext_set-->`{`.                                                                       % extensional set 
-op_negation-->`--`.                                                                     % negation 
-op_int_image-->`\\`.                                                                    % \ intensional image 
-op_ext_image-->`/`.                                                                     % / extensional image 
+op_int_set-->`[`.                          % intensional set 
+op_ext_set-->`{`.                          % extensional set 
+op_negation-->`--`.                        % negation 
+op_int_image-->`\\`.                       % \ intensional image 
+op_ext_image-->`/`.                        % / extensional image 
 
 op_multi(X)-->   
-                o(`&&` ,X, and)                                                               % conjunction 
-              ; o(`*` ,X, product)                                                            % product 
-              ; o(`||` ,X, or)                                                                % disjunction 
-              ; o(`&|` ,X, parallel_evnts)                                                    % parallel events 
-              ; o(`&/` ,X, sequence_evnts)                                                    % sequential events 
-              ; o(`|` ,X, int_img)                                                            % intensional intersection 
-              ; o(`&` ,X, ext_img)                                                            % extensional intersection 
-              .
+        o(`&&` ,X, and)                          % conjunction 
+      ; o(`*` ,X, product)                       % product 
+      ; o(`||` ,X, or)                           % disjunction 
+      ; o(`&|` ,X, parallel_evnts)               % parallel events 
+      ; o(`&/` ,X, sequence_evnts)               % sequential events 
+      ; o(`|` ,X, int_intersection)              % intensional intersection 
+      ; o(`&` ,X, ext_intersection)              % extensional intersection 
+      .
 op_single(X) --> 
-          o(`-`, X, ext_diff)                                                         % extensional difference 
-       ;  o(`~`, X, int_diff)                                                         % intensional difference 
+          o(`-`, X, ext_difference)              % extensional difference 
+       ;  o(`~`, X, int_difference)              % intensional difference 
        .
 
 variable(var(X,W))
-    -->o(`$`, X, ind), word0(W)                                                % independent variable 
-      ;o(`#`, X, dep), word0(W)                                                % dependent variable 
-      ;o(`?`, X, query), word0(W)                                              % query variable in question 
+    -->o(`$`, X, ind), word0(W)      % independent variable 
+      ;o(`#`, X, dep), word0(W)      % dependent variable 
+      ;o(`?`, X, query), word0(W)            % query variable in question 
       .
 
 tense(X) -->
-      o(`:/:`, X, future)                                                     % future event 
-   ;  o(`:|:`, X, present)                                                    % present event 
-   ;  o(`:\\:`, X, past)                                                      % :\: past event 
+      o(`:/:`, X, future)                        % future event 
+   ;  o(`:|:`, X, present)                       % present event 
+   ;  o(`:\\:`, X, past)                         % :\: past event 
    .
 
 % Desire is same format of Truth, but different interpretations 
@@ -206,10 +205,10 @@ word0(E) --> dcg_basics:number(E),!.
 word0(E) --> s_string(E),!.
 word0(E) --> nal_peek([C]),{char_type(C,alpha)},!, rsymbol([],E),!.
 
-s_string(Text)                 --> `"`, !, zalwayz(s_string_cont(Text)),!.
-s_string_cont("")             --> `"`,!.
-s_string_cont(Txt)                 --> dbl_quoted_string(S), {text_to_string_safe(S,Txt)}.
-dbl_quoted_string(X)--> read_string_until(X,`"`).
+s_string(Text)           --> `"`, !, zalwayz(s_string_cont(Text)),!.
+s_string_cont("")        --> `"`,!.
+s_string_cont(Txt)       --> read_string_until(S,`"`), {text_to_string_safe(S,Txt)}.
+
 
   priority(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
 durability(F) --> float_exclusive(0,1,F).           %  0 <  x <  1 
@@ -267,19 +266,19 @@ parse_nal_term((String), Expr) :- string(String),!,parse_nal_ascii(String, Expr)
 parse_nal_term([E|List], Expr) :- !, parse_nal_ascii([E|List], Expr).
 parse_nal_term(Other, Expr) :- quietly((l_open_input(Other,In)->Other\=@=In)),!,parse_nal_term(In, Expr).
 
-rsymbol(Chars,E) --> [C], {sym_char(C)},!, sym_continue(S), {append(Chars,[C|S],AChars),string_to_atom(AChars,E)},!.
+rsymbol(Chars,E) --> [C], {notrace(sym_char(C))},!, sym_continue(S), {append(Chars,[C|S],AChars),string_to_atom(AChars,E)},!.
 sym_continue([H|T]) --> [H], {sym_char(H)},!, sym_continue(T).
 sym_continue([]) --> peek_symbol_breaker,!.
 sym_continue([]) --> [].
 nal_peek(Grammar,List,List):- phrase(Grammar,List,_),!.
-nal_dcgUnless(Grammar,List,List):- \+ phrase(Grammar,List,_),!.
+nal_reader_unless(Grammar,List,List):- \+ phrase(Grammar,List,_),!.
 peek_symbol_breaker --> nal_peek([C]),{\+ sym_char(C)}.
 peek_symbol_breaker --> one_blank.
 one_blank --> [C],!,{C =< 32}.   
 sym_char(C):- bx(C =<  32),!,fail.
 %sym_char(44). % allow comma in middle of symbol
 % word is: #"[^\ ]+"   %  unicode string     
-sym_char(C):- memberchk(C,`";()~'[]<>{},=-\\^```),!,fail.  % maybe 44 ? comma
+sym_char(C):- memberchk(C,`";()~'[]<>``{},=-\\^`),!,fail.  % maybe 44 ? comma
 %sym_char(C):- nb_current('$maybe_string',t),memberchk(C,`,.:;!%`),!,fail.
 sym_char(_):- !.
 
@@ -332,44 +331,7 @@ phrase_from_pending_stream(CodesPrev,Grammar,In):-
 
 :- thread_local(t_l:fake_buffer_codes/2).
 
-parse_config:-
-  use_nars_config(library('../config/mvpConfig.xml')).
-
-use_nars_config_info(List):- is_list(List),!,maplist(use_nars_config_info, List).
-use_nars_config_info(Ignore):- string(Ignore),!.
-use_nars_config_info([]):-!.
-use_nars_config_info(element(_,[], List)):-!, use_nars_config_info(List).
-use_nars_config_info(element(_,[name=Name,value=Value], _)):-!,
- use_nars_config_info(Name=Value).
-use_nars_config_info(Name=Value):- string(Name), downcase_atom(Name,NameD),NameD\=Name,!,use_nars_config_info(NameD=Value).
-use_nars_config_info(Name=Value):- string(Value), downcase_atom(Value,ValueD),ValueD\=Value,!,use_nars_config_info(Name=ValueD).
-use_nars_config_info(Name=Value):- atom(Value), atom_number(Value,Number), use_nars_config_info(Name=Number).
-use_nars_config_info(NameValue):- dmsg(use_nars_config_info(NameValue)),fail.
-use_nars_config_info(Name=Value):- number(Value), !, nb_setval(Name,Value).
-use_nars_config_info(Name=Value):- nb_setval(Name, Value).
-use_nars_config_info(_).
-use_nars_config(File):- (\+ atom(File); \+ is_absolute_file_name(File)),
-  absolute_file_name(File,Absolute), !, use_nars_config(Absolute).
-use_nars_config(Absolute):- open(Absolute,read,In),
-   load_sgml(In, Dom,
-                  [  dialect(html5),
-                     attribute_value(string),
-                     cdata(string),
-                     system_entities(true),
-                     space(remove),
-                     syntax_errors(quiet),
-                     case_preserving_attributes(false),
-                     case_sensitive_attributes(false),
-                  max_errors(-1)]),!,
-   close(In),
-   use_nars_config_info(Dom),!.
-
-
-
-
-
-
-%% parse_nal_stream( +Stream, -Expr) is det.
+parse_nal_stream( +Stream, -Expr) is det.
 %
 % Parse S-expression from a Stream
 %

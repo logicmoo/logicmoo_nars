@@ -9,6 +9,127 @@
 :- set_module(class(library)).
 :- set_module(base(system)).
 
+
+use_nars_config_info(List):- is_list(List),!,maplist(use_nars_config_info, List).
+use_nars_config_info([]):-!.
+use_nars_config_info(element(_,[], List)):-!, use_nars_config_info(List).
+use_nars_config_info(element(_,[name=Name,value=Value], _)):-!,
+ use_nars_config_info(Name=Value).
+use_nars_config_info(Name=Value):-  string(Name), downcase_atom(Name,NameD),   NameD\=Name,!,use_nars_config_info(NameD=Value).
+use_nars_config_info(Name=Value):- string(Value), downcase_atom(Value,ValueD),ValueD\=Value,!,use_nars_config_info(Name=ValueD).
+use_nars_config_info(Name=Value):- atom(Value), atom_number(Value,Number), use_nars_config_info(Name=Number).
+%use_nars_config_info(Ignore):- string(Ignore),!.
+%use_nars_config_info(NameValue):- dmsg(use_nars_config_info(NameValue)),fail.
+use_nars_config_info(Name=Value):- number(Value), !, nb_setval(Name,Value).
+use_nars_config_info(Name=Value):- nb_setval(Name, Value).
+use_nars_config_info(_).
+
+% default gobals
+:-  use_nars_config_info(volume=100).
+:-  use_nars_config_info(novelty_horizon=100000).
+:-  use_nars_config_info(decision_threshold=0.51).
+:-  use_nars_config_info(concept_bag_size=80000).
+:-  use_nars_config_info(concept_bag_levels=1000).
+:-  use_nars_config_info(duration=5).
+:-  use_nars_config_info(horizon=1).
+:-  use_nars_config_info(truth_epsilon=0.01).
+:-  use_nars_config_info(budget_epsilon=0.0001).
+:-  use_nars_config_info(budget_threshold=0.01).
+:-  use_nars_config_info(default_confirmation_expectation=0.6).
+:-  use_nars_config_info(always_create_concept=true).
+:-  use_nars_config_info(default_creation_expectation=0.66).
+:-  use_nars_config_info(default_creation_expectation_goal=0.6).
+:-  use_nars_config_info(default_judgment_confidence=0.9).
+:-  use_nars_config_info(default_judgment_priority=0.8).
+:-  use_nars_config_info(default_judgment_durability=0.5).
+:-  use_nars_config_info(default_question_priority=0.9).
+:-  use_nars_config_info(default_question_durability=0.9).
+:-  use_nars_config_info(default_goal_confidence=0.9).
+:-  use_nars_config_info(default_goal_priority=0.9).
+:-  use_nars_config_info(default_goal_durability=0.9).
+:-  use_nars_config_info(default_quest_priority=0.9).
+:-  use_nars_config_info(default_quest_durability=0.9).
+:-  use_nars_config_info(bag_threshold=1.0).
+:-  use_nars_config_info(forget_quality_relative=0.3).
+:-  use_nars_config_info(revision_max_occurrence_distance=10).
+:-  use_nars_config_info(task_link_bag_size=100).
+:-  use_nars_config_info(task_link_bag_levels=10).
+:-  use_nars_config_info(term_link_bag_size=100).
+:-  use_nars_config_info(term_link_bag_levels=10).
+:-  use_nars_config_info(term_link_max_matched=10).
+:-  use_nars_config_info(novel_task_bag_size=1000).
+:-  use_nars_config_info(novel_task_bag_levels=100).
+:-  use_nars_config_info(novel_task_bag_selections=100).
+:-  use_nars_config_info(sequence_bag_size=30).
+:-  use_nars_config_info(sequence_bag_levels=10).
+:-  use_nars_config_info(operation_bag_size=10).
+:-  use_nars_config_info(operation_bag_levels=10).
+:-  use_nars_config_info(operation_samples=6).
+:-  use_nars_config_info(projection_decay=0.1).
+:-  use_nars_config_info(maximum_evidental_base_length=20000).
+:-  use_nars_config_info(termlink_max_reasoned=3).
+:-  use_nars_config_info(term_link_record_length=10).
+:-  use_nars_config_info(concept_beliefs_max=28).
+:-  use_nars_config_info(concept_questions_max=5).
+:-  use_nars_config_info(concept_goals_max=7).
+:-  use_nars_config_info(reliance=0.9).
+:-  use_nars_config_info(discount_rate=0.5).
+:-  use_nars_config_info(immediate_eternalization=true).
+:-  use_nars_config_info(sequence_bag_attempts=10).
+:-  use_nars_config_info(condition_bag_attempts=10).
+:-  use_nars_config_info(derivation_priority_leak=0.4).
+:-  use_nars_config_info(derivation_durability_leak=0.4).
+:-  use_nars_config_info(curiosity_desire_confidence_mul=0.1).
+:-  use_nars_config_info(curiosity_desire_priority_mul=0.1).
+:-  use_nars_config_info(curiosity_desire_durability_mul=0.3).
+:-  use_nars_config_info(curiosity_for_operator_only=false).
+:-  use_nars_config_info(break_nal_hol_boundary=false).
+:-  use_nars_config_info(question_generation_on_decision_making=false).
+:-  use_nars_config_info(how_question_generation_on_decision_making=false).
+:-  use_nars_config_info(anticipation_confidence=0.1).
+:-  use_nars_config_info(anticipation_tolerance=100.0).
+:-  use_nars_config_info(retrospective_anticipations=false).
+:-  use_nars_config_info(satisfaction_treshold=0.0).
+:-  use_nars_config_info(complexity_unit=1.0).
+:-  use_nars_config_info(interval_adapt_speed=4.0).
+:-  use_nars_config_info(tasklink_per_content=4).
+:-  use_nars_config_info(default_feedback_priority=0.9).
+:-  use_nars_config_info(default_feedback_durability=0.5).
+:-  use_nars_config_info(concept_forget_durations=2.0).
+:-  use_nars_config_info(termlink_forget_durations=10.0).
+:-  use_nars_config_info(tasklink_forget_durations=4.0).
+:-  use_nars_config_info(event_forget_durations=4.0).
+:-  use_nars_config_info(variable_introduction_combinations_max=8).
+:-  use_nars_config_info(variable_introduction_confidence_mul=0.9).
+:-  use_nars_config_info(anticipations_per_concept_max=8).
+:-  use_nars_config_info(motor_babbling_confidence_threshold=0.8).
+:-  use_nars_config_info(threads_amount=1).
+:-  use_nars_config_info(milliseconds_per_step=0).
+:-  use_nars_config_info(steps_clock=true).
+:-  use_nars_config_info(derivation_durability_leak=0.4).
+:-  use_nars_config_info(derivation_priority_leak=0.4).
+
+use_nars_config(File):- (\+ atom(File); \+ is_absolute_file_name(File)),
+  absolute_file_name(File,Absolute), !, use_nars_config(Absolute).
+use_nars_config(Absolute):- open(Absolute,read,In),
+   load_sgml(In, Dom,
+                  [  dialect(html5),
+                     attribute_value(string),
+                     cdata(string),
+                     system_entities(true),
+                     space(remove),
+                     syntax_errors(quiet),
+                     case_preserving_attributes(false),
+                     case_sensitive_attributes(false),
+                  max_errors(-1)]),!,
+   close(In),
+   use_nars_config_info(Dom),!.
+
+parse_config:-
+  use_nars_config(library('../config/mvpConfig.xml')).
+
+
+
 % This program covers the inference rules of upto NAL-6 in
 % "Non-Axiomatic Logic: A Model of Intelligent Reasoning"
 % For the details of syntax, see the "User's Guide of NAL"
