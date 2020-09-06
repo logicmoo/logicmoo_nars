@@ -92,31 +92,28 @@
          confidence : #"[0]?\.[0]*[1-9]{1}[0-9]*"             (* 0 <  x <  1 *)
 */
 
-task_list(S)--> cwhite,!,task_list(S).
-task_list([H|T]) -->  nal_dcgPeek([_]), !, task(H), !, task_list(T),!.
-task_list([])--> owhite,!.
-
 task(S)--> cwhite,!,task(S).
 task(task(X,S,T,O,B)) --> task(X,S,T,O,B),!.
 
 
 
-task(X,S,T,O,B) --> optional(budget(B)),!, sentence(X,S,T,O).                                     % task to be processed 
+task(X,S,T,O,B) --> optional(B, budget),!, sentence(X,S,T,O).  % task to be processed 
+
 
 sentence(X,S,T,O)--> 
-           statement(S), o(`.` ,X, judgement), optional(T,tense), optional(O,truth)   % judgement to be absorbed into beliefs 
-        ;  statement(S), o(`?` ,X, question_truth), optional(T,tense), optional(O,truth)      % question on truth_value to be answered 
+           statement(S), o(`.` ,X, judgement),!, optional(T,tense), optional(O,truth)   % judgement to be absorbed into beliefs 
+        ;  statement(S), o(`?` ,X, question_truth),!, optional(T,tense), optional(O,truth)      % question on truth_value to be answered 
         ;  statement(S), o(`!` ,X, goal), optional(O,desire)                  % goal to be realized by operations 
         ;  statement(S), o(`@` ,X, question_desire), optional(O,desire)       % question on desire_value to be answered 
         .
 
-statement(S)--> cwhite,!,statement(S).
-statement(S)--> 
-        `<` ,!, term(A), copula(R), term(B), `>` ,     {S=..[R,A,B]}            % two, terms related to each other 
+statement(S)--> maybe_some_white(statement0(S)).
+statement0(S)--> 
+        `<` ,!, term(A), copula(R), term(B), `>` ,   {S=..[R,A,B]}            % two, terms related to each other 
       ;  l_paren, `^` , term_list(L), paren_r,       {S= exec(L)}             % an operation to be executed 
       ;  l_paren, term(A), copula(R), term(B), `)`,  {S=..[R,A,B]}            % two, terms related to each other, new notation 
       ;  word(A), l_paren, term_list(L), paren_r,    {S= exec([A|L])}         % an operation to be executed, new notation 
-      % ;  term(X),                                    {S= statement(X)}        % a, term, can name a statement(S) 
+      ;  term1(X),                                   {S= statement(X)}        % a, term, can name a statement(S) 
       .
          
 
@@ -133,18 +130,24 @@ copula(X) -->
          ;  o(`<=>` ,X,                                                  equiv )
          ;  o(`</>` ,X,                                                  predictive_equiv )
          ;  o(`<|>` ,X,                                                  concurrent_equiv )
+         ;  o(`=>` ,X,                                                  unknown_impl )
          .
 
-term0(S)--> word(S)                                                             % an atomic constant, term, 
+term(S)--> word(S)                                                              % an atomic constant, term,                 
         ;  variable(S)                                                          % an atomic variable, term, 
         ;  compound_term(S)                                                     % a, term, with internal structure 
         ;  statement(S)                                                         % a statement can serve as a, term, 
         .
 
+term1(S)--> word(S)                                                             % an atomic constant, term,                 
+        ;  variable(S)                                                          % an atomic variable, term, 
+        ;  compound_term(S)                                                     % a, term, with internal structure 
+        .
+
 compound_term(S)--> nal_dcgUnless(`<`),!,
 (
-      o(op_ext_set,X), term_list(L), `}`                                                     % extensional set 
-   ;  o(op_int_set,X), term_list(L), `]`                                                     % intensional set 
+      o(op_ext_set,X,ext_set), term_list(L), `}`                                                     % extensional set 
+   ;  o(op_int_set,X,int_set), term_list(L), `]`                                                     % intensional set 
    ;  l_paren, op_multi(X), comma, term_list(L), paren_r                                     % with prefix operator 
    ;  l_paren, op_single(X), comma, term(A), comma, term(B), paren_r, {L=[A,B]}              % with prefix operator 
    ;  l_paren, o(op_ext_image,X), comma, term_list(L), paren_r                               % special case, extensional image 
@@ -154,7 +157,7 @@ compound_term(S)--> nal_dcgUnless(`<`),!,
    ;  l_paren, term(A), op_multi(X), term(B), paren_r,{L=[A,B]}                              % with infix operator 
    ;  l_paren, term(A), op_single(X), term(B), paren_r,{L=[A,B]}                             % with infix operator 
    ;  l_paren, {X=product}, term_list(L), paren_r                                            % product, new notation 
-   ), {var(S)-> S=..[X|L] ; true}.
+   ), {var(S)-> S=..[X,L] ; true}.
 
 op_int_set-->`[`.                                                                       % intensional set 
 op_ext_set-->`{`.                                                                       % extensional set 
@@ -177,9 +180,9 @@ op_single(X) -->
        .
 
 variable(var(X,W))
-    -->o(`$`, X, ind), word(W)                                                % independent variable 
-      ;o(`#`, X, dep), word(W)                                                % dependent variable 
-      ;o(`?`, X, query), word(W)                                              % query variable in question 
+    -->o(`$`, X, ind), word0(W)                                                % independent variable 
+      ;o(`#`, X, dep), word0(W)                                                % dependent variable 
+      ;o(`?`, X, query), word0(W)                                              % query variable in question 
       .
 
 tense(X) -->
@@ -191,10 +194,41 @@ tense(X) -->
 % Desire is same format of Truth, but different interpretations 
 desire(D)-->truth(D).									
 % Truth is two numbers in [0,1]x(0,1) 
+truth([F,C])--> `{`, !, frequency(F), confidence(C), `}`.	                
 truth([F,C])--> `%`, frequency(F), optional((`;`, confidence(C))), `%`.	                
 % Budget is three numbers in optional(O,0,1]x(0,1)x[0,1] 
 budget(budget_pdq(P,D,Q))--> `$`,!, priority(P), optional(( `;`, durability(D))), optional((`;`, quality(Q))), `$`.  
 
+
+word(E) --> maybe_some_white(word0(E)).
+
+word0(E) --> dcg_basics:number(E),!.
+word0(E) --> s_string(E),!.
+word0(E) --> nal_peek([C]),{char_type(C,alpha)},!, rsymbol([],E),!.
+
+s_string(Text)                 --> `"`, !, zalwayz(s_string_cont(Text)),!.
+s_string_cont("")             --> `"`,!.
+s_string_cont(Txt)                 --> dbl_quoted_string(S), {text_to_string_safe(S,Txt)}.
+dbl_quoted_string(X)--> read_string_until(X,`"`).
+
+  priority(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
+durability(F) --> float_exclusive(0,1,F).           %  0 <  x <  1 
+   quality(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
+ frequency(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
+confidence(F) --> float_exclusive(0,1,F).           %  0 <  x <  1 
+
+o(S,X,X) --> owhite,S,owhite.
+o(X,X) --> o(X,X,X).
+
+float_inclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {L=< F,F=< H})).
+float_exclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {L < F,F < H})).
+
+optional(X) --> cwhite, !, optional(X).
+optional(X) --> X, owhite.
+optional(_) --> [].
+optional(O,X) --> {debug_var(X,O),append_term(X,O,XO)},!,optional(XO).
+
+maybe_some_white(X) --> owhite,!,X,owhite.  
 owhite --> cwhite.
 owhite --> [].
 
@@ -215,57 +249,34 @@ eoln --> [C],!, {charvar(C),eoln(C)},!.
 eoln(10).
 eoln(13).
 
+comma --> maybe_some_white(`,`).
+l_paren --> maybe_some_white(`(`).
+paren_r --> maybe_some_white(`)`).
 
-word(E) --> rsymbol([],E).
-
-           priority(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
-         durability(F) --> float_exclusive(0,1,F).           %  0 <  x <  1 
-            quality(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
-          frequency(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
-         confidence(F) --> float_exclusive(0,1,F).           %  0 <  x <  1 
-
-o(S,X,X) --> owhite,S,owhite.
-o(X,X) --> o(X,X,X).
-
-float_inclusive(L,H,F)--> number(F),!, {L=< F,F=< H}.
-float_exclusive(L,H,F)--> number(F),!, {L < F,F < H}.
-optional(X) --> cwhite, !, optional(X).
-optional(X) --> X,!.
-optional(_) --> [],!.
-optional(O,X) --> {append_term(X,O,XO)},!,optional(XO).
-
-comma --> `,`.
-l_paren --> `(`.
-paren_r --> `)`.
-
-term_list([H|T]) --> term(H), ( `,` ->  term_list(T) ; {T=[]} ).
-
-term(S) --> term0(S).
+term_list([H|T]) --> term(H), ( comma ->  term_list(T) ; {T=[]} ).
 
 
-read_nal_term(S, Expr) :- fail, is_stream(S),!, parse_nal_stream(S,Expr).
-read_nal_term(S, Expr) :- notrace(( is_stream(S), clear_pending_buffer_codes, 
-  read_codes_from_pending_input(S,M),M\==[])),!, parse_nal_ascii(M,Expr).
-read_nal_term(string(String), Expr) :- !,parse_nal_ascii(String, Expr).
-read_nal_term(atom(String), Expr) :- !,parse_nal_ascii(String, Expr).
-read_nal_term(text(String), Expr) :- !,parse_nal_ascii(String, Expr).
-read_nal_term((String), Expr) :- string(String),!,parse_nal_ascii(String, Expr).
-read_nal_term([E|List], Expr) :- !, parse_nal_ascii([E|List], Expr).
-read_nal_term(Other, Expr) :- zalwayz(quietly_sreader((l_open_input(Other,In)->Other\=@=In))),!,parse_nal_stream(In, Expr).
+parse_nal_term(S, Expr) :- is_stream(S),!, parse_nal_stream(S,Expr).
+parse_nal_term(string(String), Expr) :- !,parse_nal_ascii(String, Expr).
+parse_nal_term(atom(String), Expr) :- !,parse_nal_ascii(String, Expr).
+parse_nal_term(text(String), Expr) :- !,parse_nal_ascii(String, Expr).
+parse_nal_term((String), Expr) :- string(String),!,parse_nal_ascii(String, Expr).
+parse_nal_term([E|List], Expr) :- !, parse_nal_ascii([E|List], Expr).
+parse_nal_term(Other, Expr) :- quietly((l_open_input(Other,In)->Other\=@=In)),!,parse_nal_term(In, Expr).
 
 rsymbol(Chars,E) --> [C], {sym_char(C)},!, sym_continue(S), {append(Chars,[C|S],AChars),string_to_atom(AChars,E)},!.
 sym_continue([H|T]) --> [H], {sym_char(H)},!, sym_continue(T).
 sym_continue([]) --> peek_symbol_breaker,!.
 sym_continue([]) --> [].
-nal_dcgPeek(Grammar,List,List):- phrase(Grammar,List,_),!.
+nal_peek(Grammar,List,List):- phrase(Grammar,List,_),!.
 nal_dcgUnless(Grammar,List,List):- \+ phrase(Grammar,List,_),!.
-peek_symbol_breaker --> nal_dcgPeek([C]),{\+ sym_char(C)}.
+peek_symbol_breaker --> nal_peek([C]),{\+ sym_char(C)}.
 peek_symbol_breaker --> one_blank.
 one_blank --> [C],!,{C =< 32}.   
 sym_char(C):- bx(C =<  32),!,fail.
 %sym_char(44). % allow comma in middle of symbol
 % word is: #"[^\ ]+"   %  unicode string     
-sym_char(C):- memberchk(C,`";()#'[]<>{}\\^```),!,fail.  % maybe 44 ? comma
+sym_char(C):- memberchk(C,`";()~'[]<>{},=-\\^```),!,fail.  % maybe 44 ? comma
 %sym_char(C):- nb_current('$maybe_string',t),memberchk(C,`,.:;!%`),!,fail.
 sym_char(_):- !.
 
@@ -464,15 +475,20 @@ file_eof --> [X],{ attvar(X), X = end_of_file},!.
 %file_nal_with_comments(O) --> [], {clause(t_l:s_reader_info(O),_,Ref),erase(Ref)},!.
 file_nal_with_comments(end_of_file) --> file_eof,!.
 file_nal_with_comments(O) --> one_blank,!,file_nal_with_comments(O),!.  % WANT? 
-file_nal_with_comments(C)                 --> nal_dcgPeek(`/*`),!,zalwayz(comment_expr(C)),owhite,!.
-file_nal_with_comments(C)                 --> nal_dcgPeek(`'`),!, zalwayz(comment_expr(C)),owhite,!.
-file_nal_with_comments(C)                 --> nal_dcgPeek(`//`),!, zalwayz(comment_expr(C)),owhite,!.
+file_nal_with_comments(C) --> comment_expr(C), owhite,!.
 file_nal_with_comments(Out,S,E):- \+ t_l:sreader_options(with_text,true),!,phrase(file_nal(Out),S,E),!.
 file_nal_with_comments(Out,S,E):- expr_with_text(Out,file_nal(O),O,S,E),!.
 
+file_nal(end_of_file) --> file_eof,!.
+% WANT? 
+file_nal(O) --> cwhite,!,file_nal(O).
+% file_nal(planStepLPG(Name,Expr,Value)) --> owhite,sym_or_num(Name),`:`,owhite, nal(Expr),owhite, `[`,sym_or_num(Value),`]`,owhite.  %   0.0003:   (PICK-UP ANDY IBM-R30 CS-LOUNGE) [0.1000]
+% file_nal(Term,Left,Right):- eoln(EOL),append(LLeft,[46,EOL|Right],Left),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
+% file_nal(Term,Left,Right):- append(LLeft,[46|Right],Left), ( \+ member(46,Right)),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
+file_nal(do_steps(N)) --> dcg_basics:number(N),!.
+file_nal(H) -->  nal_peek([_]), task(H).
+file_nal([])--> owhite,!.
 
-% in Cyc there was a fitness heuristic that every time an logical axiom had a generated a unique consequent it was considered to have utility as it would expand the breadth of a search .. the problem often was those consequents would feed a another axiom's antecedant where that 
-:- asserta((system:'$and'(X,Y):- (X,Y))).
 
 expr_with_text(Out,DCG,O,S,E):- 
    zalwayz(lazy_list_character_count(StartPos,S,M)),%integer(StartPos),
@@ -500,14 +516,6 @@ get_nal_with_comments(O,_,O,_,_):- compound(O),functor(O,'$COMMENT',_),!.
 get_nal_with_comments(O,Txt,with_text(O,Str),S,_E):-append(Txt,_,S),!,text_to_string(Txt,Str).
 %file_nal_with_comments(O,with_text(O,Txt),S,E):- copy_until_tail(S,Copy),text_to_string_safe(Copy,Txt),!.
 
-
-file_nal(end_of_file) --> file_eof,!.
-% WANT? 
-file_nal(O) --> cwhite,!,file_nal(O).
-% file_nal(planStepLPG(Name,Expr,Value)) --> owhite,sym_or_num(Name),`:`,owhite, nal(Expr),owhite, `[`,sym_or_num(Value),`]`,owhite.  %   0.0003:   (PICK-UP ANDY IBM-R30 CS-LOUNGE) [0.1000]
-% file_nal(Term,Left,Right):- eoln(EOL),append(LLeft,[46,EOL|Right],Left),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
-% file_nal(Term,Left,Right):- append(LLeft,[46|Right],Left), ( \+ member(46,Right)),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
-file_nal(Expr) --> task_list(Expr),!.
 
 :- thread_local(t_l:sreader_options/2).
 
@@ -584,6 +592,18 @@ read_nal_clause(Stream, Out):-
     (Term == end_of_file -> Out=[];
       (Term = (:- Exec) -> (input:call(Exec), Out=More) ; Out = [Term|More]),
        read_nal_clause(Stream, More)))),!.
+
+read_nal_term(In,Expr):- 
+ notrace(( is_stream(In), 
+  remove_pending_buffer_codes(In,Codes), 
+  read_codes_from_pending_input(In,Text), Text\==[])), !,
+  call_cleanup(parse_nal_ascii(Text,Expr),
+    append_buffer_codes(In,Codes)).
+read_nal_term(Text,Expr):- 
+ notrace(( =( ascii_,In),
+  remove_pending_buffer_codes(In,Codes))),   
+  call_cleanup(parse_nal_ascii(Text,Expr),
+    append_buffer_codes(In,Codes)).
 
 % Expand Stream or String
 call_nal(Ctx, Stream, Out):- \+ compound(Stream),
