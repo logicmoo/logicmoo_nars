@@ -220,7 +220,7 @@ confidence(F) --> float_exclusive(0,1,F).           %  0 <  x <  1
 o(S,X,X) --> owhite,S,owhite.
 o(X,X) --> o(X,X,X).
 
-float_inclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {warn_on_falure((L=< F,F=< H))})).
+float_inclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {warn_if_strict((L=< F,F=< H))})).
 float_exclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {warn_if_strict((L < F,F < H))})).
 
 warn_if_strict(G):- call(G),!.
@@ -331,6 +331,43 @@ phrase_from_pending_stream(CodesPrev,Grammar,In):-
 
 
 :- thread_local(t_l:fake_buffer_codes/2).
+
+parse_config:-
+  use_nars_config(library('../config/mvpConfig.xml')).
+
+use_nars_config_info(List):- is_list(List),!,maplist(use_nars_config_info, List).
+use_nars_config_info(Ignore):- string(Ignore),!.
+use_nars_config_info([]):-!.
+use_nars_config_info(element(_,[], List)):-!, use_nars_config_info(List).
+use_nars_config_info(element(_,[name=Name,value=Value], _)):-!,
+ use_nars_config_info(Name=Value).
+use_nars_config_info(Name=Value):- string(Name), downcase_atom(Name,NameD),NameD\=Name,!,use_nars_config_info(NameD=Value).
+use_nars_config_info(Name=Value):- string(Value), downcase_atom(Value,ValueD),ValueD\=Value,!,use_nars_config_info(Name=ValueD).
+use_nars_config_info(Name=Value):- atom(Value), atom_number(Value,Number), use_nars_config_info(Name=Number).
+use_nars_config_info(NameValue):- dmsg(use_nars_config_info(NameValue)),fail.
+use_nars_config_info(Name=Value):- number(Value), !, nb_setval(Name,Value).
+use_nars_config_info(Name=Value):- nb_setval(Name, Value).
+use_nars_config_info(_).
+use_nars_config(File):- (\+ atom(File); \+ is_absolute_file_name(File)),
+  absolute_file_name(File,Absolute), !, use_nars_config(Absolute).
+use_nars_config(Absolute):- open(Absolute,read,In),
+   load_sgml(In, Dom,
+                  [  dialect(html5),
+                     attribute_value(string),
+                     cdata(string),
+                     system_entities(true),
+                     space(remove),
+                     syntax_errors(quiet),
+                     case_preserving_attributes(false),
+                     case_sensitive_attributes(false),
+                  max_errors(-1)]),!,
+   close(In),
+   use_nars_config_info(Dom),!.
+
+
+
+
+
 
 %% parse_nal_stream( +Stream, -Expr) is det.
 %
