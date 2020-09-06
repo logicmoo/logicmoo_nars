@@ -220,8 +220,11 @@ confidence(F) --> float_exclusive(0,1,F).           %  0 <  x <  1
 o(S,X,X) --> owhite,S,owhite.
 o(X,X) --> o(X,X,X).
 
-float_inclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {L=< F,F=< H})).
-float_exclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {L < F,F < H})).
+float_inclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {warn_on_falure((L=< F,F=< H))})).
+float_exclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {warn_if_strict((L < F,F < H))})).
+
+warn_if_strict(G):- call(G),!.
+warn_if_strict(G):- dmsg(warn_if_strict(G)),!.
 
 optional(X) --> cwhite, !, optional(X).
 optional(X) --> X, owhite.
@@ -486,6 +489,7 @@ file_nal(O) --> cwhite,!,file_nal(O).
 % file_nal(Term,Left,Right):- eoln(EOL),append(LLeft,[46,EOL|Right],Left),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
 % file_nal(Term,Left,Right):- append(LLeft,[46|Right],Left), ( \+ member(46,Right)),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
 file_nal(do_steps(N)) --> dcg_basics:number(N),!.
+file_nal(N=V) -->  maybe_some_white(`*`), word(N), maybe_some_white(`=`), term(V).
 file_nal(H) -->  nal_peek([_]), task(H).
 file_nal([])--> owhite,!.
 
