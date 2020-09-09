@@ -1,3 +1,4 @@
+
 % nal.pl
 % Non-Axiomatic Logic in Prolog
 % Version: 1.1, September 2012

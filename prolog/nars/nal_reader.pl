@@ -12,6 +12,7 @@
 :- set_module(base(system)).
 
 :- use_module(library(logicmoo_common)).
+:- use_module(library(narsese)).
 
 /*
                 task ::= [budget] sentence                       (* task to be processed *)
@@ -92,7 +93,7 @@
          confidence : #"[0]?\.[0]*[1-9]{1}[0-9]*"             (* 0 <  x <  1 *)
 */
 
-task(S)--> cwhite,!,task(S).
+task(S)--> cwhite,!,task(S),!.
 task(task(X,S,T,O,B)) --> task(X,S,T,O,B),!.
 
 
@@ -100,20 +101,22 @@ task(task(X,S,T,O,B)) --> task(X,S,T,O,B),!.
 task(X,S,T,O,B) --> optional(B, budget),!, sentence(X,S,T,O).  % task to be processed 
 
 
-sentence(X,S,T,O)--> 
-           statement(S), o(`.` ,X, judgement),!, optional(T,tense), optional(O,truth)   % judgement to be absorbed into beliefs 
-        ;  statement(S), o(`?` ,X, question_truth),!, optional(T,tense), optional(O,truth)      % question on truth_value to be answered 
-        ;  statement(S), o(`!` ,X, goal), optional(O,desire)                  % goal to be realized by operations 
-        ;  statement(S), o(`@` ,X, question_desire), optional(O,desire)       % question on desire_value to be answered 
+sentence(X,S,T,O)--> statement(S), post_statement(X,T,O).
+
+post_statement(X,T,O)--> 
+          /*statement(S),*/ o(`.` ,X, judgement)-> optional(T,tense)-> optional(O,truth),!   % judgement to be absorbed into beliefs 
+        ; /*statement(S),*/ o(`?` ,X, question_truth)-> optional(T,tense)-> optional(O,truth),! % question on truth_value to be answered 
+        ; /*statement(S),*/ o(`!` ,X, goal), optional(O,desire)                  % goal to be realized by operations 
+        ; /*statement(S),*/ o(`@` ,X, question_desire), optional(O,desire)       % question on desire_value to be answered 
         .
 
-statement(S)--> maybe_some_white(statement0(S)).
+statement(S)--> mw(statement0(S)),!.
 statement0(S)--> 
-        `<` ,!, term(A), copula(R), term(B), `>` ,   {S=..[R,A,B]}   % two, terms related to each other 
-      ;  l_paren, `^` , term_list(L), paren_r,       {S= exec(L)}    % an operation to be executed 
-      ;  l_paren, term(A), copula(R), term(B), `)`,  {S=..[R,A,B]}   % two, terms related to each other, new notation 
-      ;  word(A), l_paren, term_list(L), paren_r,    {S= exec([A|L])}% an operation to be executed, new notation 
-      ;  term1(X),                   {S= statement(X)}               % a, term, can name a statement(S) 
+        mw(`<`) ,!, term(A), copula(R), term(B), mw(`>`) ,   {S=..[R,A,B]}   % two, terms related to each other 
+      ;  l_paren, `^` , term_list(L), paren_r,       {S= exec(L)}            % an operation to be executed 
+      ;  l_paren, term(A), copula(R), term(B), paren_r,  {S=..[R,A,B]}       % two, terms related to each other, new notation 
+      ;  word(A), l_paren, term_list(L), paren_r,    {S= exec([A|L])}        % an operation to be executed, new notation 
+      ;  term1(X),             {S= named_statement(X)}                       % a, term, can name a statement(S) 
       .
          
 
@@ -139,24 +142,40 @@ term(S)--> word(S)                         % an atomic constant, term,
         ;  statement(S)                    % a statement can serve as a, term, 
         .
 
+term0(S)-->  word0(S)                       % an atomic constant, term,         
+        ;  variable0(S)                     % an atomic variable, term, 
+        ;  compound_term0(S)                % a, term, with internal structure 
+        ;  statement0(S)                    % a statement can serve as a, term, 
+        .
+
 term1(S)--> word(S)                        % an atomic constant, term,         
         ;  variable(S)                     % an atomic variable, term, 
         ;  compound_term(S)                % a, term, with internal structure 
         .
 
-compound_term(S)--> nal_reader_unless(`<`),!,
+compound_term(X)--> mw(compound_term0(X)).
+
+compound_term0('exec'([S]))--> `^`,!,term1(S).
+compound_term0(S)--> nal_reader_unless(`<`),!,
    (  o(op_ext_set,X,ext_set), term_list(L), `}`                % extensional set 
    ;  o(op_int_set,X,int_set), term_list(L), `]`                % intensional set 
-   ;  l_paren, op_multi(X), comma, term_list(L), paren_r                        % with prefix operator 
-   ;  l_paren, op_single(X), comma, term(A), comma, term(B), paren_r, {L=[A,B]} % with prefix operator 
-   ;  l_paren, o(op_ext_image,X,ext_image), comma, term_list(L), paren_r        % special case, extensional image 
-   ;  l_paren, o(op_int_image,X,int_image), comma, term_list(L), paren_r        % special case, \ intensional image 
-   ;  l_paren, o(op_negation,X,negation), comma, term(AB), paren_r,{L=[AB]}     % negation 
-   ;  o(op_negation,X,negation), term(AB),{L=[AB]}                              % negation, new notation 
-   ;  l_paren, term(A), op_multi(X), term(B), paren_r,{L=[A,B]}                 % with infix operator 
-   ;  l_paren, term(A), op_single(X), term(B), paren_r,{L=[A,B]}                % with infix operator 
-   ;  l_paren, {X=product}, term_list(L), paren_r                               % product, new notation 
+
+   ;  word0(A), `[`, term_list(L), `]`,  {S= v(A,L)}            % @TODO notation 
+   ;  o(op_negation,X,negation), term(AB),{L=[AB]}              % negation, new notation 
+   ;   l_paren, paren_compound_term(X,L), paren_r 
    ), {S=..[X,L]}.
+
+paren_compound_term(X,L) --> 
+      op_multi(X), comma, term_list(L)                        % with prefix operator 
+   ;  op_single(X), comma, term(A), comma, term(B), {L=[A,B]} % with prefix operator 
+   ;  o(op_ext_image,X,ext_image), comma, term_list(L)        % special case, extensional image 
+   ;  o(op_int_image,X,int_image), comma, term_list(L)        % special case, \ intensional image 
+   ;  o(op_negation,X,negation), comma, term(AB),{L=[AB]}     % negation 
+   ;  term(A), op_multi(X), term(B),{L=[A,B]}                 % with infix operator 
+   ;  term(A), op_single(X), term(B),{L=[A,B]}                % with infix operator 
+   ;  preserve_whitespace((term0(A), cspace,  {X=rel}, term_list_sep(SL, ` `))),{L=[A|SL]}
+   ;  {X=product}, term_list(L)                               % product, new notation 
+   .
 
 op_int_set-->`[`.                          % intensional set 
 op_ext_set-->`{`.                          % extensional set 
@@ -164,10 +183,16 @@ op_negation-->`--`.                        % negation
 op_int_image-->`\\`.                       % \ intensional image 
 op_ext_image-->`/`.                        % / extensional image 
 
+
+preserve_whitespace(DCG,S,E) :- locally(b_setval(whitespace,preserve),phrase(DCG,S,E)).
+no_preserve_whitespace(DCG,S,E) :- phrase(DCG,S,E).
+
+
 op_multi(X)-->   
         o(`&&` ,X, and)                          % conjunction 
       ; o(`*` ,X, product)                       % product 
       ; o(`||` ,X, or)                           % disjunction 
+      ; o(`#` ,X, sequence_spatial)              % patham9 "sequence", wasn't really useful for NLP, it was called PART
       ; o(`&|` ,X, parallel_evnts)               % parallel events 
       ; o(`&/` ,X, sequence_evnts)               % sequential events 
       ; o(`|` ,X, int_intersection)              % intensional intersection 
@@ -178,28 +203,38 @@ op_single(X) -->
        ;  o(`~`, X, int_difference)              % intensional difference 
        .
 
-variable(var(X,W))
+variable(V)--> mw(variable0(V)).
+
+variable0(var(X,W))
     -->o(`$`, X, ind), word0(W)      % independent variable 
       ;o(`#`, X, dep), word0(W)      % dependent variable 
-      ;o(`?`, X, query), word0(W)            % query variable in question 
+      ;o(`?`, X, query), word0(W)    % query variable in question 
+      ;o(`/`, X, arg), word0(W)    % query variable in params 
       .
+
+variable0(('_')) --> `_`.
+variable0(('#')) --> `#`.
+variable0(('$')) --> `$`.
+
 
 tense(X) -->
       o(`:/:`, X, future)                        % future event 
    ;  o(`:|:`, X, present)                       % present event 
    ;  o(`:\\:`, X, past)                         % :\: past event 
    .
+tense('t!'(X)) --> `:!`, number(X), `:`.
+tense('t'(X)) --> `:`, term1(X), `:`.
 
 % Desire is same format of Truth, but different interpretations 
 desire(D)-->truth(D).									
 % Truth is two numbers in [0,1]x(0,1) 
+truth([F,C])--> `%`, !, frequency(F), optional((`;`, confidence(C))), `%`.	                
 truth([F,C])--> `{`, !, frequency(F), confidence(C), `}`.	                
-truth([F,C])--> `%`, frequency(F), optional((`;`, confidence(C))), `%`.	                
 % Budget is three numbers in optional(O,0,1]x(0,1)x[0,1] 
 budget(budget_pdq(P,D,Q))--> `$`,!, priority(P), optional(( `;`, durability(D))), optional((`;`, quality(Q))), `$`.  
 
 
-word(E) --> maybe_some_white(word0(E)).
+word(E) --> mw(word0(E)).
 
 word0(E) --> dcg_basics:number(E),!.
 word0(E) --> s_string(E),!.
@@ -219,42 +254,52 @@ confidence(F) --> float_exclusive(0,1,F).           %  0 <  x <  1
 o(S,X,X) --> owhite,S,owhite.
 o(X,X) --> o(X,X,X).
 
-float_inclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {warn_if_strict((L=< F,F=< H))})).
-float_exclusive(L,H,F)--> maybe_some_white((dcg_basics:number(F) -> {warn_if_strict((L < F,F < H))})).
+float_inclusive(L,H,F)--> mw((dcg_basics:number(F) -> {warn_if_strict((L=< F,F=< H))})).
+float_exclusive(L,H,F)--> mw((dcg_basics:number(F) -> {warn_if_strict((L < F,F < H))})).
 
 warn_if_strict(G):- call(G),!.
 warn_if_strict(G):- dmsg(warn_if_strict(G)),!.
 
 optional(X) --> cwhite, !, optional(X).
-optional(X) --> X, owhite.
+optional(X) --> X,!, owhite.
 optional(_) --> [].
 optional(O,X) --> {debug_var(X,O),append_term(X,O,XO)},!,optional(XO).
 
-maybe_some_white(X) --> owhite,!,X,owhite.  
+mw(X) --> cspace,!, mw(X).
+mw(X) --> X,!,owhite.
+
+owhite --> {notrace(nb_current(whitespace,preserve))},!.
 owhite --> cwhite.
 owhite --> [].
 
 % cwhite --> comment_expr(S,I,CP),!,{assert(t_l:s_reader_info('$COMMENT'(S,I,CP)))},!,owhite.
 cwhite --> comment_expr(CMT),!,{assert(t_l:s_reader_info(CMT))},!,owhite.
-cwhite --> [C], {nonvar(C),charvar(C),!,bx(C =< 32)},!,owhite.
+cwhite --> {notrace(nb_current(whitespace,preserve))}, !, {fail}.
+cwhite --> cspace,!,owhite.
+cspace --> [C], {nonvar(C),charvar(C),!,C\==10,bx(C =< 32)}.
 charvar(C):- integer(C)-> true; (writeln(charvar(C)),break,fail).
+
+comment_expr(X) --> cspace,!,comment_expr(X).
 comment_expr('$COMMENT'(Expr,I,CP)) --> comment_expr_3(Expr,I,CP),!.
 
 comment_expr_3(T,N,CharPOS) --> `/*`, !, my_lazy_list_location(file(_,_,N,CharPOS)),!, zalwayz(read_string_until_no_esc(S,`*/`)),!,
   {text_to_string_safe(S,T)},!.
-comment_expr_3(T,N,CharPOS) -->  `//`,!, my_lazy_list_location(file(_,_,N,CharPOS)),!,zalwayz(read_string_until_no_esc(S,eoln)),!,
-  {text_to_string_safe(S,T)},!.
-comment_expr_3(T,N,CharPOS) -->  `'`,!, my_lazy_list_location(file(_,_,N,CharPOS)),!,zalwayz(read_string_until_no_esc(S,eoln)),!,
-  {text_to_string_safe(S,T)},!.
+comment_expr_3(T,N,CharPOS) -->  {cmt_until_eoln(Text)},Text,!, my_lazy_list_location(file(_,_,N,CharPOS)),!,zalwayz(read_string_until_no_esc(S,eoln)),!,
+ {text_to_string_safe(S,T)},!.
 
-eoln --> [C],!, {charvar(C),eoln(C)},!.
+cmt_until_eoln(`//`).
+cmt_until_eoln(`'`).
+cmt_until_eoln(`**`).
+
+eoln --> [C],!, {nonvar(C),charvar(C),eoln(C)},!.
 eoln(10).
 eoln(13).
 
-comma --> maybe_some_white(`,`).
-l_paren --> maybe_some_white(`(`).
-paren_r --> maybe_some_white(`)`).
+comma --> mw(`,`).
+l_paren --> mw(`(`).
+paren_r --> mw(`)`).
 
+term_list_sep([H|T], Sep) --> term0(H), ( (Sep,owhite) ->  term_list_sep(T, Sep) ; ({T=[]},owhite)).
 term_list([H|T]) --> term(H), ( comma ->  term_list(T) ; {T=[]} ).
 
 
@@ -267,38 +312,55 @@ parse_nal_term([E|List], Expr) :- !, parse_nal_ascii([E|List], Expr).
 parse_nal_term(Other, Expr) :- quietly((l_open_input(Other,In)->Other\=@=In)),!,parse_nal_term(In, Expr).
 
 rsymbol(Chars,E) --> [C], {notrace(sym_char(C))},!, sym_continue(S), {append(Chars,[C|S],AChars),string_to_atom(AChars,E)},!.
-sym_continue([H|T]) --> [H], {sym_char(H)},!, sym_continue(T).
 sym_continue([]) --> peek_symbol_breaker,!.
+sym_continue([H|T]) --> [H], {sym_char(H)},!, sym_continue(T).
 sym_continue([]) --> [].
-nal_peek(Grammar,List,List):- phrase(Grammar,List,_),!.
+nal_peek(Grammar,List,List):- (var(Grammar)->((N=2;N=1;between(3,20,N)),length(Grammar,N)); true),phrase(Grammar,List,_),!.
 nal_reader_unless(Grammar,List,List):- \+ phrase(Grammar,List,_),!.
-peek_symbol_breaker --> nal_peek([C]),{\+ sym_char(C)}.
-peek_symbol_breaker --> one_blank.
-one_blank --> [C],!,{C =< 32}.   
+peek_symbol_breaker --> nal_peek(`--`).
+peek_symbol_breaker --> nal_peek(`-`),!,{fail}.
+peek_symbol_breaker --> nal_peek(one_blank).
+peek_symbol_breaker --> nal_peek([C]),{\+ sym_char(C)},!.
+one_blank --> [C],!,{C =< 32}.
+sym_char(C):- \+ integer(C),!,char_code(C,D),!,sym_char(D).
 sym_char(C):- bx(C =<  32),!,fail.
 %sym_char(44). % allow comma in middle of symbol
 % word is: #"[^\ ]+"   %  unicode string     
-sym_char(C):- memberchk(C,`";()~'[]<>``{},=-\\^`),!,fail.  % maybe 44 ? comma
+sym_char(C):- never_symbol_char(NeverSymbolList),memberchk(C,NeverSymbolList),!,fail.  % maybe 44 ? comma
 %sym_char(C):- nb_current('$maybe_string',t),memberchk(C,`,.:;!%`),!,fail.
 sym_char(_):- !.
 
+never_symbol_char(`";()~'[]<>``{},=\\^`).
+
+user:portray(List):- compound(List),functor([_,_],F,A),functor(List,F,A),
+    List=[H|_],integer(H),H>9,user_portray_dcg_seq(List).
+
+user_portray_dcg_seq(List):- \+ is_list(List),!,between(32,1,Len),length(Left,Len),append(Left,_,List), ground(Left),!,
+   catch(atom_codes(W,Left),_,fail),format("|~w ___|",[W]).
+user_portray_dcg_seq(List):- catch(atom_codes(Atom,List),_,fail),length(List,Len),
+  (Len < 32 -> format("`~w`",[Atom]) ;  
+    (length(Left,26),append(Left,_Rest,List),format(atom(Print),"~s",[Left]),format("|~w ... |",[Print]))).
+
+dcg_notrace(G,S,E):- tracing -> setup_call_cleanup(notrace,phrase(G,S,E),trace); phrase(G,S,E).
+
 rsymbol_cont(Prepend,E) --> sym_continue(S), {append(Prepend,S,AChars),string_to_atom(AChars,E)},!.
-my_lazy_list_location(Loc) --> lazy_list_location(Loc),!.
+my_lazy_list_location(Loc,S,S):- attvar(S), notrace(catch(lazy_list_location(Loc,S,S),_,fail)),!.
 my_lazy_list_location(file(_,_,-1,-1))-->[].
-read_string_until_no_esc(String,End)--> read_string_until(noesc,String,End).
-read_string_until(String,End)--> read_string_until(esc,String,End).
+read_string_until_no_esc(String,End)--> dcg_notrace(read_string_until(noesc,String,End)).
+read_string_until(String,End)--> dcg_notrace(read_string_until(esc,String,End)).
 read_string_until(_,[],eoln,S,E):- S==[],!,E=[].
 read_string_until(esc,[C|S],End) --> `\\`,!, zalwayz(escaped_char(C)),!, read_string_until(esc,S,End),!.
 read_string_until(_,[],HB) --> HB, !.
 read_string_until(Esc,[C|S],HB) --> [C],!,read_string_until(Esc,S,HB),!.
+escaped_char(E) --> [C], {atom_codes(Format,[92,C]),format(codes([E|_]),Format,[])},!.
 zalwayz(G,H,T):- phrase(G,H,T),!.
-zalwayz(G,H,T):- nb_current('$nal_translation_stream',S),is_stream(S), \+ stream_property(S,tty(true)),always_b(G,H,T).
+zalwayz(G,H,T):- nb_current('$nal_translation_stream',S),is_stream(S), \+ stream_property(S,tty(true)),!,always_b(G,H,T).
 always_b(G,H,T):- break,H=[_|_],writeq(phrase_h(G,H,T)),dcg_print_start_of(H),writeq(phrase(G,H,T)),!,trace,ignore(rtrace(phrase(G,H,T))),!,notrace,dcg_print_start_of(H),writeq(phrase(G,H,T)), break,!,fail.
 always_b(G,H,T):- writeq(phrase(G,H,T)),dcg_print_start_of(H),writeq(phrase(G,H,T)),!,trace,ignore(rtrace(phrase(G,H,T))),!,notrace,dcg_print_start_of(H),writeq(phrase(G,H,T)), break,!,fail.
 dcg_print_start_of(H):- (length(L,3000);length(L,300);length(L,30);length(L,10);length(L,1);length(L,0)),append(L,_,H),!,format('~NTEXT: ~s~n',[L]),!.
 bx(CT2):- notrace_catch_fail(CT2,E,(writeq(E:CT2),break)),!.
-notrace_catch_fail(G,E,C):- notrace(catch(G,E,C)),!.
-notrace_catch_fail(G):- notrace(catch(G,_,fail)),!.
+notrace_catch_fail(G,E,C):- catch(G,E,C),!.
+notrace_catch_fail(G):- catch(G,_,fail),!.
 zalwayz(G):- must(G).
 clean_fromt_ws([],[]).
 clean_fromt_ws([D|DCodes],Codes):- 
@@ -321,7 +383,7 @@ phrase_from_pending_stream(CodesPrev,Grammar,In):- CodesPrev=[_,_|_],
 phrase_from_pending_stream(CodesPrev,Grammar,In):- 
   b_setval('$nal_translation_stream',In),
   read_codes_from_pending_input(In,Codes),!,
-  ((is_eof_codes(Codes)) -> 
+  ((notrace(is_eof_codes(Codes))) -> 
      phrase_from_eof(Grammar, In); 
      (append(CodesPrev,Codes,NewCodes), !,
        (phrase(Grammar, NewCodes, NewBuffer) 
@@ -329,9 +391,30 @@ phrase_from_pending_stream(CodesPrev,Grammar,In):-
           phrase_from_pending_stream(NewCodes,Grammar,In)))).
 
 
+is_nal_test_file(X):-filematch('../../nal-tests/**/*',X), \+ non_nal_file(X). 
+is_nal_test_file(X):-filematch('../../examples/**/*',X), \+ non_nal_file(X). 
+non_nal_file(X):- downcase_atom(X,DC),X\==DC,!,non_nal_file(DC).
+non_nal_file(X):- atom_concat(readme,_,X).
+non_nal_file(X):- atom_concat(_,'.pl',X).
+
+test_nal_file:- 
+ make,
+ catch((
+   forall(is_nal_test_file(X),((dmsg(file_begin(X)),ignore(test_nal_file(X)),dmsg(file_end(X)))))),
+    '$aborted',true).
+
+test_nal_file(File):- (\+ atom(File); \+ is_absolute_file_name(File)),
+  absolute_file_name(File,Absolute), !, test_nal_file(Absolute).
+test_nal_file(File):- open(File,read,In),
+  read_nal_clauses(In, Expr),!,
+  must_or_rtrace(call_nal(test_nal_file,Expr,OutL)),!,
+  flatten([OutL],Out),
+  maplist(wdmsg,Out),!.
+
+
 :- thread_local(t_l:fake_buffer_codes/2).
 
-parse_nal_stream( +Stream, -Expr) is det.
+% parse_nal_stream( +Stream, -Expr) is det.
 %
 % Parse S-expression from a Stream
 %
@@ -476,22 +559,32 @@ file_eof --> [X],{ attvar(X), X = end_of_file},!.
 
 %file_nal_with_comments(O) --> [], {clause(t_l:s_reader_info(O),_,Ref),erase(Ref)},!.
 file_nal_with_comments(end_of_file) --> file_eof,!.
-file_nal_with_comments(O) --> one_blank,!,file_nal_with_comments(O),!.  % WANT? 
-file_nal_with_comments(C) --> comment_expr(C), owhite,!.
+file_nal_with_comments(O) --> one_blank,!,file_nal_with_comments(O).  % WANT? 
+file_nal_with_comments(C) --> comment_expr(C),!.
 file_nal_with_comments(Out,S,E):- \+ t_l:sreader_options(with_text,true),!,phrase(file_nal(Out),S,E),!.
 file_nal_with_comments(Out,S,E):- expr_with_text(Out,file_nal(O),O,S,E),!.
 
 file_nal(end_of_file) --> file_eof,!.
 % WANT? 
 file_nal(O) --> cwhite,!,file_nal(O).
+file_nal([]) -->  \+ nal_peek([_]),!.
+file_nal(outputMustContain(O)) --> `''outputMustContain('`, read_string_until(Str,`')`),{phrase(task(O),Str,[])}. 
+file_nal('1Answer'(O)) --> `' Answer `, read_string_until(Str,(`{`,read_string_until(_,eoln))),{phrase(task(O),Str,[])}. 
 % file_nal(planStepLPG(Name,Expr,Value)) --> owhite,sym_or_num(Name),`:`,owhite, nal(Expr),owhite, `[`,sym_or_num(Value),`]`,owhite.  %   0.0003:   (PICK-UP ANDY IBM-R30 CS-LOUNGE) [0.1000]
 % file_nal(Term,Left,Right):- eoln(EOL),append(LLeft,[46,EOL|Right],Left),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
 % file_nal(Term,Left,Right):- append(LLeft,[46|Right],Left), ( \+ member(46,Right)),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
 file_nal(do_steps(N)) --> dcg_basics:number(N),!.
-file_nal(N=V) -->  maybe_some_white(`*`), word(N), maybe_some_white(`=`), term(V).
-file_nal(H) -->  nal_peek([_]), task(H).
-file_nal([])--> owhite,!.
+file_nal(N=V) -->  mw(`*`), word(N), mw(`=`), term(V).
+file_nal(nal_in(H,V3)) -->  `IN:`,  task(H), optional(three_vals(V3)).
+file_nal(nal_out(H,V3)) -->  `OUT:`,  task(H), optional(three_vals(V3)).
+file_nal(H) --> task(H).
+file_nal(term(H)) --> term(H).
+file_nal(english(Text)) --> read_string_until_no_esc(Str,eoln), 
+  {atom_string(Str,Text)},!. %split_string(Str, "", "\s\t\r\n", Text).
 
+% {1 : 4;3} 
+three_vals(V3)--> `{`, read_string_until_no_esc(Str,(`}`;eoln)), 
+  {read_term_from_codes(Str,V3,[double_quotes(string),syntax_errors(fail)])},!.
 
 expr_with_text(Out,DCG,O,S,E):- 
    zalwayz(lazy_list_character_count(StartPos,S,M)),%integer(StartPos),
@@ -523,7 +616,7 @@ get_nal_with_comments(O,Txt,with_text(O,Str),S,_E):-append(Txt,_,S),!,text_to_st
 :- thread_local(t_l:sreader_options/2).
 
 
-a_nal_test("'the detective claims that tim lives in graz"):- !.
+a_nal_test("'the detective claims that tim lives in graz").
 
 a_nal_test("'Revision ------
 
@@ -538,23 +631,27 @@ a_nal_test("'Revision ------
 'Bird is very likely to be a type of swimmer.
 ''outputMustContain('<bird --> swimmer>. %0.87;0.91%')").
 
-a_nal_test("'the detective claims that tim lives in graz
+a_nal_test("
+
+'the detective claims that tim lives in graz
 '<{tim} --> (/,livingIn,_,{graz})>.
 'and lawyer claims that this is not the case
 <{tim} --> (/,livingIn,_,{graz})>. %0%
 100
 'the first deponent, a psychologist,
 'claims that people with sunglasses are more aggressive
-<<,  %,$1,sunglasses) --> own> ==> <$1 --> [aggressive]>>.
+<<(*,$1,sunglasses) --> own> ==> <$1 --> [aggressive]>>.
 'the third deponent claims, that he has seen tom with sunglasses on:
-<,  %,{tom},sunglasses) --> own>.
+<(*,{tom},sunglasses) --> own>.
 'the teacher claims, that people who are aggressive tend to be murders
 <<$1 --> [aggressive]> ==> <$1 --> murder>>.
 'the second deponent claims, that if the person lives in Graz, he is surely the murder
 <<$1 --> (/,livingIn,_,{graz})> ==> <$1 --> murder>>.
-'who is the murder? 
+'who is the murder?
 <{?who} --> murder>?
-''outputMustContain('<{tom} --> murder>. %1.00;0.73%')").
+''outputMustContain('<{tom} --> murder>. %1.00;0.73%')
+
+").
 
 
 
@@ -570,11 +667,16 @@ test_nal(Test):- call_nal('dmsg',Test,Out),dmsg(Out).
 zave_varname(N,V):- debug_var(N,V),!.
 %zave_varname(N,V):- V = '$VAR'(N).
 
+/*
 implode_varnames(Vs):- (var(Vs) ; Vs==[]),!.
 implode_varnames([NV|Vs]) :- implode_varnames(Vs),
   (var(NV) -> ignore((variable_name(NV,Name),zave_varname(Name,NV))); 
   ignore((NV=(N=V),zave_varname(N,V)))).
+*/
 
+read_nal_clauses( Text, Out):-
+ findall(Cl,read_nal_clause(Text, Cl), OutL),
+ flatten([OutL],Out).
 
 read_nal_clause( NonStream, Out):- \+ is_stream(NonStream), !, % wdmsg(NonStream),
   must_or_rtrace((open_string(NonStream,Stream), read_nal_clause(Stream, Out))).
@@ -594,7 +696,7 @@ read_nal_clause(Stream, Out):-
    (read_nal_term(Stream, Term),
     (Term == end_of_file -> Out=[];
       (Term = (:- Exec) -> (input:call(Exec), Out=More) ; Out = [Term|More]),
-       read_nal_clause(Stream, More)))),!.
+       read_nal_clause(Stream, More)))).
 
 read_nal_term(In,Expr):- 
  notrace(( is_stream(In), 
@@ -610,10 +712,10 @@ read_nal_term(Text,Expr):-
 
 % Expand Stream or String
 call_nal(Ctx, Stream, Out):- \+ compound(Stream),
-  must_or_rtrace(read_nal_clause(Stream, List)), !,
+  must_or_rtrace(read_nal_clauses(Stream, List)), !,
   call_nal(Ctx, List, Out).
 
-call_nal(Ctx, List, Out):- is_list(List),!, maplist(call_nal(Ctx),List, Out).
+call_nal(Ctx, List, Out):- is_list(List),!, maplist(call_nal(Ctx),List, OutL),flatten(OutL,Out).
 call_nal(Ctx, InnerCtx=json(List), Out):- !,  call_nal([InnerCtx|Ctx], List, Out).
 
 call_nal(Ctx, List, Out):- 
