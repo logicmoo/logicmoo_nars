@@ -1,5 +1,5 @@
 name(narsese).
-version('1.5.666').
+version('2.0.1').
 title('Narsese: Like OpenNARS in Prolog').
 keywords([nars,ai,interpeters]).
 author( 'Douglas Miles', 'http://www.linkedin.com/in/logicmoo' ).
