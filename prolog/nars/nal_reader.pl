@@ -27,8 +27,8 @@
         statement ::= <"<">term copula term<">">              (* two terms related to each other *)
                     | <"(">term copula term<")">              (* two terms related to each other, new notation *)
                     | term                                    (* a term can name a statement *)
-                    | "(^"word {","term} ")"                  (* an operation to be executed *)
-                    | word"("term {","term} ")"               (* an operation to be executed, new notation *)
+                    | "(^"nars_word {","term} ")"                  (* an operation to be executed *)
+                    | nars_word"("term {","term} ")"               (* an operation to be executed, new notation *)
 
            copula ::= "-->"                                   (* inheritance *)
                     | "<->"                                   (* similarity *)
@@ -43,8 +43,8 @@
                     | "</>"                                   (* predictive equivalence *)
                     | "<|>"                                   (* concurrent equivalence *)
 
-             term ::= word                                    (* an atomic constant term *)
-                    | variable                                (* an atomic variable term *)
+             term ::= nars_word                                    (* an atomic constant term *)
+                    | nars_variable                                (* an atomic nars_variable term *)
                     | compound-term                           (* a term with internal structure *)
                     | statement                               (* a statement can serve as a term *)
 
@@ -75,9 +75,9 @@
         op-single ::= "-"                                     (* extensional difference *)
                     | "~"                                     (* intensional difference *)
 
-         variable ::= "$"word                                 (* independent variable *)
-                    | "#"word                                 (* dependent variable *)
-                    | "?"word                                 (* query variable in question *)
+         nars_variable ::= "$"nars_word                                 (* independent nars_variable *)
+                    | "#"nars_word                                 (* dependent nars_variable *)
+                    | "?"nars_word                                 (* query nars_variable in question *)
 
             tense ::= ":/:"                                   (* future event *)
                     | ":|:"                                   (* present event *)
@@ -87,7 +87,7 @@
             truth ::= <"%">frequency[<";">confidence]<"%">    (* two numbers in [0,1]x(0,1) *)
            budget ::= <"$">priority[<";">durability][<";">quality]<"$"> (* three numbers in [0,1]x(0,1)x[0,1] *)
 
-               word : #"[^\ ]+"                               (* unicode string *)    
+               nars_word : #"[^\ ]+"                               (* unicode string *)    
            priority : #"([0]?\.[0-9]+|1\.[0]*|1|0)"           (* 0 <= x <= 1 *)
          durability : #"[0]?\.[0]*[1-9]{1}[0-9]*"             (* 0 <  x <  1 *)
             quality : #"([0]?\.[0-9]+|1\.[0]*|1|0)"           (* 0 <= x <= 1 *)
@@ -117,8 +117,8 @@ statement0(S)-->
         mw(`<`) ,!, term(A), copula(R), term(B), mw(`>`) ,   {S=..[R,A,B]}   % two, terms related to each other 
       ;  l_paren, `^` , nars_term_list(L), paren_r,       {S= exec(L)}            % an operation to be executed 
       ;  l_paren, term(A), copula(R), term(B), paren_r,  {S=..[R,A,B]}       % two, terms related to each other, new notation 
-      ;  word(A), l_paren, nars_term_list(L), paren_r,    {S= exec([A|L])}        % an operation to be executed, new notation 
-      ;  term1(X),             {S= named_statement(X)}                       % a, term, can name a statement(S) 
+      ;  nars_word(A), l_paren, nars_term_list(L), paren_r,    {S= exec([A|L])}        % an operation to be executed, new notation 
+      ;  nal_term1(X),             {S= named_statement(X)}                       % a, term, can name a statement(S) 
       .
          
 
@@ -138,26 +138,26 @@ copula(X) -->
          ;  o(`=>` ,X,                           unknown_impl )
          .
 
-term(S)--> word(S)                         % an atomic constant, term,         
-        ;  variable(S)                     % an atomic variable, term, 
+term(S)--> nars_word(S)                         % an atomic constant, term,         
+        ;  nars_variable(S)                     % an atomic nars_variable, term, 
         ;  compound_term(S)                % a, term, with internal structure 
         ;  statement(S)                    % a statement can serve as a, term, 
         .
 
 term0(S)-->  word0(S)                       % an atomic constant, term,         
-        ;  variable0(S)                     % an atomic variable, term, 
+        ;  variable0(S)                     % an atomic nars_variable, term, 
         ;  compound_term0(S)                % a, term, with internal structure 
         ;  statement0(S)                    % a statement can serve as a, term, 
         .
 
-term1(S)--> word(S)                        % an atomic constant, term,         
-        ;  variable(S)                     % an atomic variable, term, 
+nal_term1(S)--> nars_word(S)                        % an atomic constant, term,         
+        ;  nars_variable(S)                     % an atomic nars_variable, term, 
         ;  compound_term(S)                % a, term, with internal structure 
         .
 
 compound_term(X)--> mw(compound_term0(X)).
 
-compound_term0('exec'([S]))--> `^`,!,term1(S).
+compound_term0('exec'([S]))--> `^`,!,nal_term1(S).
 compound_term0(S)--> \+ dcg_peek(`<`),!,
    (  o(op_ext_set,X,ext_set), nars_term_list(L), `}`                % extensional set 
    ;  o(op_int_set,X,int_set), nars_term_list(L), `]`                % intensional set 
@@ -205,13 +205,13 @@ op_single(X) -->
        ;  o(`~`, X, int_difference)              % intensional difference 
        .
 
-variable(V)--> mw(variable0(V)).
+nars_variable(V)--> mw(variable0(V)).
 
 variable0(var(X,W))
-    -->o(`$`, X, ind), word0(W)      % independent variable 
-      ;o(`#`, X, dep), word0(W)      % dependent variable 
-      ;o(`?`, X, query), word0(W)    % query variable in question 
-      ;o(`/`, X, arg), word0(W)    % query variable in params 
+    -->o(`$`, X, ind), word0(W)      % independent nars_variable 
+      ;o(`#`, X, dep), word0(W)      % dependent nars_variable 
+      ;o(`?`, X, query), word0(W)    % query nars_variable in question 
+      ;o(`/`, X, arg), word0(W)    % query nars_variable in params 
       .
 
 variable0(('_')) --> `_`.
@@ -225,7 +225,7 @@ tense(X) -->
    ;  o(`:\\:`, X, past)                         % :\: past event 
    .
 tense('t!'(X)) --> `:!`, number(X), `:`.
-tense('t'(X)) --> `:`, term1(X), `:`.
+tense('t'(X)) --> `:`, nal_term1(X), `:`.
 
 % Desire is nars_same format of Truth, but different interpretations 
 desire(D)-->truth(D).									
@@ -236,14 +236,14 @@ truth([F,C])--> `{`, !, frequency(F), confidence(C), `}`.
 budget(budget_pdq(P,D,Q))--> `$`,!, priority(P), optional(( `;`, durability(D))), optional((`;`, quality(Q))), `$`.  
 
 
-word(E) --> mw(word0(E)).
+nars_word(E) --> mw(word0(E)).
 
 word0(E) --> dcg_basics:number(E),!.
 word0(E) --> quoted_string(E),!.
 word0(E) --> dcg_peek([C]),{char_type(C,alpha)},!, nars_rsymbol([],E),!.
 
 
-  priority(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
+  priority(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1       
 durability(F) --> float_exclusive(0,1,F).           %  0 <  x <  1 
    quality(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
  frequency(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
@@ -298,7 +298,7 @@ nars_peek_symbol_breaker --> dcg_peek([C]),{\+ nars_sym_char(C)},!.
 nars_sym_char(C):- \+ integer(C),!,char_code(C,D),!,nars_sym_char(D).
 nars_sym_char(C):- bx(C =<  32),!,fail.
 %nars_sym_char(44). % allow comma in middle of symbol
-% word is: #"[^\ ]+"   %  unicode string     
+% nars_word is: #"[^\ ]+"   %  unicode string     
 nars_sym_char(C):- never_symbol_char(NeverSymbolList),memberchk(C,NeverSymbolList),!,fail.  % maybe 44 ? comma
 %nars_sym_char(C):- nb_current('$maybe_string',t),memberchk(C,`,.:;!%`),!,fail.
 nars_sym_char(_):- !.
@@ -306,7 +306,7 @@ nars_sym_char(_):- !.
 never_symbol_char(`";()~'[]<>``{},=\\^`).
 
 
-rsymbol_cont(Prepend,E) --> nars_sym_continue(S), {append(Prepend,S,AChars),string_to_atom(AChars,E)},!.
+nars_rsymbol_cont(Prepend,E) --> nars_sym_continue(S), {append(Prepend,S,AChars),string_to_atom(AChars,E)},!.
 
 
 is_nal_test_file(X):-filematch('../../nal-tests/**/*',X), \+ non_nal_file(X). 
@@ -340,7 +340,7 @@ file_nal('1Answer'(O)) --> `' Answer `, read_string_until(Str,(`{`,read_string_u
 % file_nal(Term,Left,Right):- eoln(EOL),append(LLeft,[46,EOL|Right],Left),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
 % file_nal(Term,Left,Right):- append(LLeft,[46|Right],Left), ( \+ member(46,Right)),read_term_from_codes(LLeft,Term,[double_quotes(string),syntax_errors(fail)]),!.
 file_nal(do_steps(N)) --> dcg_basics:number(N),!.
-file_nal(N=V) -->  mw(`*`), word(N), mw(`=`), term(V).
+file_nal(N=V) -->  mw(`*`), nars_word(N), mw(`=`), term(V).
 file_nal(nal_in(H,V3)) -->  `IN:`,  task(H), optional(three_vals(V3)).
 file_nal(nal_out(H,V3)) -->  `OUT:`,  task(H), optional(three_vals(V3)).
 file_nal(H) --> task(H).
