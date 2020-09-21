@@ -83,7 +83,7 @@
                     | ":|:"                                   (* present event *)
                     | ":\\:"                                  (* :\: past event *)
           
-           desire ::= truth                                   (* same format, different interpretations *)
+           desire ::= truth                                   (* nars_same format, different interpretations *)
             truth ::= <"%">frequency[<";">confidence]<"%">    (* two numbers in [0,1]x(0,1) *)
            budget ::= <"$">priority[<";">durability][<";">quality]<"$"> (* three numbers in [0,1]x(0,1)x[0,1] *)
 
@@ -115,9 +115,9 @@ post_statement(X,T,O)-->
 statement(S)--> mw(statement0(S)),!.
 statement0(S)--> 
         mw(`<`) ,!, term(A), copula(R), term(B), mw(`>`) ,   {S=..[R,A,B]}   % two, terms related to each other 
-      ;  l_paren, `^` , term_list(L), paren_r,       {S= exec(L)}            % an operation to be executed 
+      ;  l_paren, `^` , nars_term_list(L), paren_r,       {S= exec(L)}            % an operation to be executed 
       ;  l_paren, term(A), copula(R), term(B), paren_r,  {S=..[R,A,B]}       % two, terms related to each other, new notation 
-      ;  word(A), l_paren, term_list(L), paren_r,    {S= exec([A|L])}        % an operation to be executed, new notation 
+      ;  word(A), l_paren, nars_term_list(L), paren_r,    {S= exec([A|L])}        % an operation to be executed, new notation 
       ;  term1(X),             {S= named_statement(X)}                       % a, term, can name a statement(S) 
       .
          
@@ -159,24 +159,24 @@ compound_term(X)--> mw(compound_term0(X)).
 
 compound_term0('exec'([S]))--> `^`,!,term1(S).
 compound_term0(S)--> \+ dcg_peek(`<`),!,
-   (  o(op_ext_set,X,ext_set), term_list(L), `}`                % extensional set 
-   ;  o(op_int_set,X,int_set), term_list(L), `]`                % intensional set 
+   (  o(op_ext_set,X,ext_set), nars_term_list(L), `}`                % extensional set 
+   ;  o(op_int_set,X,int_set), nars_term_list(L), `]`                % intensional set 
 
-   ;  word0(A), `[`, term_list(L), `]`,  {S= v(A,L)}            % @TODO notation 
+   ;  word0(A), `[`, nars_term_list(L), `]`,  {S= v(A,L)}            % @TODO notation 
    ;  o(op_negation,X,negation), term(AB),{L=[AB]}              % negation, new notation 
    ;   l_paren, paren_compound_term(X,L), paren_r 
    ), {S=..[X,L]}.
 
 paren_compound_term(X,L) --> 
-      op_multi(X), comma, term_list(L)                        % with prefix operator 
+      op_multi(X), comma, nars_term_list(L)                        % with prefix operator 
    ;  op_single(X), comma, term(A), comma, term(B), {L=[A,B]} % with prefix operator 
-   ;  o(op_ext_image,X,ext_image), comma, term_list(L)        % special case, extensional image 
-   ;  o(op_int_image,X,int_image), comma, term_list(L)        % special case, \ intensional image 
+   ;  o(op_ext_image,X,ext_image), comma, nars_term_list(L)        % special case, extensional image 
+   ;  o(op_int_image,X,int_image), comma, nars_term_list(L)        % special case, \ intensional image 
    ;  o(op_negation,X,negation), comma, term(AB),{L=[AB]}     % negation 
    ;  term(A), op_multi(X), term(B),{L=[A,B]}                 % with infix operator 
    ;  term(A), op_single(X), term(B),{L=[A,B]}                % with infix operator 
    ;  preserve_whitespace((term0(A), cspace,  {X=rel}, term_list_sep(SL, ` `))),{L=[A|SL]}
-   ;  {X=product}, term_list(L)                               % product, new notation 
+   ;  {X=product}, nars_term_list(L)                               % product, new notation 
    .
 
 op_int_set-->`[`.                          % intensional set 
@@ -227,7 +227,7 @@ tense(X) -->
 tense('t!'(X)) --> `:!`, number(X), `:`.
 tense('t'(X)) --> `:`, term1(X), `:`.
 
-% Desire is same format of Truth, but different interpretations 
+% Desire is nars_same format of Truth, but different interpretations 
 desire(D)-->truth(D).									
 % Truth is two numbers in [0,1]x(0,1) 
 truth([F,C])--> `%`, !, frequency(F), optional((`;`, confidence(C))), `%`.	                
@@ -240,7 +240,7 @@ word(E) --> mw(word0(E)).
 
 word0(E) --> dcg_basics:number(E),!.
 word0(E) --> quoted_string(E),!.
-word0(E) --> dcg_peek([C]),{char_type(C,alpha)},!, rsymbol([],E),!.
+word0(E) --> dcg_peek([C]),{char_type(C,alpha)},!, nars_rsymbol([],E),!.
 
 
   priority(F) --> float_inclusive(0,1,F).           %  0 <= x <= 1 
@@ -260,15 +260,15 @@ float_exclusive(L,H,F)--> mw((dcg_basics:number(F) -> {warn_if_strict((L < F,F <
 warn_if_strict(G):- call(G),!.
 warn_if_strict(G):- dmsg(warn_if_strict(G)),!.
 
-:- set_dcg_meta_reader_options(file_comment_reader, comment_expr).
+:- set_dcg_meta_reader_options(file_comment_reader, nars_comment_expr).
 
 
-comment_expr(X) --> cspace,!,comment_expr(X).
-comment_expr('$COMMENT'(Expr,I,CP)) --> comment_expr_3(Expr,I,CP),!.
+nars_comment_expr(X) --> cspace,!,nars_comment_expr(X).
+nars_comment_expr('$COMMENT'(Expr,I,CP)) --> nars_comment_expr_3(Expr,I,CP),!.
 
-comment_expr_3(T,N,CharPOS) --> `/*`, !, my_lazy_list_location(file(_,_,N,CharPOS)),!, zalwayz(read_string_until_no_esc(S,`*/`)),!,
+nars_comment_expr_3(T,N,CharPOS) --> `/*`, !, my_lazy_list_location(file(_,_,N,CharPOS)),!, zalwayz(read_string_until_no_esc(S,`*/`)),!,
   {text_to_string_safe(S,T)},!.
-comment_expr_3(T,N,CharPOS) -->  {cmt_until_eoln(Text)},Text,!, my_lazy_list_location(file(_,_,N,CharPOS)),!,zalwayz(read_string_until_no_esc(S,eoln)),!,
+nars_comment_expr_3(T,N,CharPOS) -->  {cmt_until_eoln(Text)},Text,!, my_lazy_list_location(file(_,_,N,CharPOS)),!,zalwayz(read_string_until_no_esc(S,eoln)),!,
  {text_to_string_safe(S,T)},!.
 
 
@@ -282,31 +282,31 @@ l_paren --> mw(`(`).
 paren_r --> mw(`)`).
 
 term_list_sep([H|T], Sep) --> term0(H), ( (Sep,owhite) ->  term_list_sep(T, Sep) ; ({T=[]},owhite)).
-term_list([H|T]) --> term(H), ( comma ->  term_list(T) ; {T=[]} ).
+nars_term_list([H|T]) --> term(H), ( comma ->  nars_term_list(T) ; {T=[]} ).
 
 
-rsymbol(Chars,E) --> [C], {notrace(sym_char(C))},!, sym_continue(S), {append(Chars,[C|S],AChars),string_to_atom(AChars,E)},!.
-sym_continue([]) --> peek_symbol_breaker,!.
-sym_continue([H|T]) --> [H], {sym_char(H)},!, sym_continue(T).
-sym_continue([]) --> [].
+nars_rsymbol(Chars,E) --> [C], {notrace(nars_sym_char(C))},!, nars_sym_continue(S), {append(Chars,[C|S],AChars),string_to_atom(AChars,E)},!.
+nars_sym_continue([]) --> nars_peek_symbol_breaker,!.
+nars_sym_continue([H|T]) --> [H], {nars_sym_char(H)},!, nars_sym_continue(T).
+nars_sym_continue([]) --> [].
 
-peek_symbol_breaker --> dcg_peek(`--`).
-peek_symbol_breaker --> dcg_peek(`-`),!,{fail}.
-peek_symbol_breaker --> dcg_peek(one_blank).
-peek_symbol_breaker --> dcg_peek([C]),{\+ sym_char(C)},!.
+nars_peek_symbol_breaker --> dcg_peek(`--`).
+nars_peek_symbol_breaker --> dcg_peek(`-`),!,{fail}.
+nars_peek_symbol_breaker --> dcg_peek(one_blank).
+nars_peek_symbol_breaker --> dcg_peek([C]),{\+ nars_sym_char(C)},!.
 
-sym_char(C):- \+ integer(C),!,char_code(C,D),!,sym_char(D).
-sym_char(C):- bx(C =<  32),!,fail.
-%sym_char(44). % allow comma in middle of symbol
+nars_sym_char(C):- \+ integer(C),!,char_code(C,D),!,nars_sym_char(D).
+nars_sym_char(C):- bx(C =<  32),!,fail.
+%nars_sym_char(44). % allow comma in middle of symbol
 % word is: #"[^\ ]+"   %  unicode string     
-sym_char(C):- never_symbol_char(NeverSymbolList),memberchk(C,NeverSymbolList),!,fail.  % maybe 44 ? comma
-%sym_char(C):- nb_current('$maybe_string',t),memberchk(C,`,.:;!%`),!,fail.
-sym_char(_):- !.
+nars_sym_char(C):- never_symbol_char(NeverSymbolList),memberchk(C,NeverSymbolList),!,fail.  % maybe 44 ? comma
+%nars_sym_char(C):- nb_current('$maybe_string',t),memberchk(C,`,.:;!%`),!,fail.
+nars_sym_char(_):- !.
 
 never_symbol_char(`";()~'[]<>``{},=\\^`).
 
 
-rsymbol_cont(Prepend,E) --> sym_continue(S), {append(Prepend,S,AChars),string_to_atom(AChars,E)},!.
+rsymbol_cont(Prepend,E) --> nars_sym_continue(S), {append(Prepend,S,AChars),string_to_atom(AChars,E)},!.
 
 
 is_nal_test_file(X):-filematch('../../nal-tests/**/*',X), \+ non_nal_file(X). 
@@ -407,14 +407,14 @@ test_nal:- forall(a_nal_test(Test),test_nal(Test)).
 test_nal(Test):- call_nal('dmsg',Test,Out),dmsg(Out).
 
 
-zave_varname(N,V):- debug_var(N,V),!.
-%zave_varname(N,V):- V = '$VAR'(N).
+nars_zave_varname(N,V):- debug_var(N,V),!.
+%nars_zave_varname(N,V):- V = '$VAR'(N).
 
 /*
 implode_varnames(Vs):- (var(Vs) ; Vs==[]),!.
 implode_varnames([NV|Vs]) :- implode_varnames(Vs),
-  (var(NV) -> ignore((variable_name(NV,Name),zave_varname(Name,NV))); 
-  ignore((NV=(N=V),zave_varname(N,V)))).
+  (var(NV) -> ignore((variable_name(NV,Name),nars_zave_varname(Name,NV))); 
+  ignore((NV=(N=V),nars_zave_varname(N,V)))).
 */
 
 read_nal_clauses( Text, Out):-
@@ -478,7 +478,7 @@ call_nal(_Ctx, List, Out):- flatten([List], Out),!.
 rule_rewrite(_Ctx, json(Replace), Replace):- nonvar(Replace),!.
 
 
-join_atomics(Sep,List,Joined):- atomics_to_string(List,Sep,Joined).
+nars_join_atomics(Sep,List,Joined):- atomics_to_string(List,Sep,Joined).
 
 /*
 into_nal_tokenized(Text,TokenizedText):- \+ string(Text),!, 
@@ -496,8 +496,8 @@ into_nal_tokenized(Text,TokenizedText):-   L=[_S1,_S2|_SS],
 into_nal_tokenized(Text,TokenizedText):-   
   split_string(Text, "\n", "\s\t\n\r",StringList),
   maplist(into_text80_atoms,StringList,SentenceList),
-  maplist(join_atomics(' '),SentenceList,ListOfStrings),
-  join_atomics('\n',ListOfStrings,TokenizedText),!.
+  maplist(nars_join_atomics(' '),SentenceList,ListOfStrings),
+  nars_join_atomics('\n',ListOfStrings,TokenizedText),!.
 */
 
 :- fixup_exports.
