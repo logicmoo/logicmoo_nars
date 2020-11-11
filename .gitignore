@@ -7,3 +7,5 @@ NAR
 src/RuleTable.c
 *.qlf
 unused/RuleTable.c
+*~
+*~/
